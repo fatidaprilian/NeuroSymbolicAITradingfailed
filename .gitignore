@@ -1,0 +1,75 @@
+# ==================================
+# === RAHASIA / KONFIGURASI PENTING ===
+# ==================================
+# SANGAT PENTING! JANGAN PERNAH UPLOAD API KEY KAMU KE GITHUB.
+# Ini akan mengabaikan file .env di folder manapun (root, backend/, frontend/).
+**/.env
+.env
+.env.*
+
+# ================================
+# === PYTHON / ANACONDA / ML ===
+# ================================
+# Folder environment
+venv/
+env/
+.venv/
+
+# Cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Jupyter Notebook Checkpoints
+.ipynb_checkpoints/
+
+# ================================
+# === NODE.JS / VITE / NUXT.JS ===
+# ================================
+# Folder library (sangat besar dan bisa di-install ulang)
+node_modules/
+
+# Cache & Build output
+.nuxt/
+.output/
+dist/
+build/
+
+# Log
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# =======================================
+# === DATA & MODEL (FILE HASIL GENERASI) ===
+# =======================================
+# Jangan upload data historis mentah
+*.csv
+*.db
+*.sqlite
+*.sqlite3
+
+# JANGAN UPLOAD MODEL HASIL TRAINING!
+# Skrip-mu (train_dqn.py) adalah "source code"-nya,
+# file .zip/.keras/.pkl adalah "hasil"-nya.
+# Cukup abaikan seluruh folder output model.
+ml_models/
+
+# ================================
+# === OS & EDITOR ===
+# ================================
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
