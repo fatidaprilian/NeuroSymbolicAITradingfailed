@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 from stable_baselines3 import DQN
+# Pastikan trading_env yang di-import adalah versi yang sudah direvisi
 from trading_env import CryptoTradingEnv
 import argparse
 
@@ -18,9 +19,8 @@ args = parser.parse_args()
 symbol_lower = args.symbol.lower()
 MODEL_DIR = "ml_models"
 
-# --- KONFIGURASI SAFETY NET ---
-# Jika volatilitas per jam > 5% (pasar badai), JANGAN trading.
-VOLATILITY_THRESHOLD_PERCENT = 5.0
+# (Konfigurasi VOLATILITY_THRESHOLD_PERCENT tidak diperlukan lagi di sini,
+# karena sudah ditangani di dalam trading_env.py)
 
 # --- FUNGSI METRIK FINANSIAL ---
 
@@ -67,62 +67,54 @@ except Exception as e:
     print(f"❌ Error: Model DQN {symbol_lower} tidak ditemukan.")
     exit()
 
-# --- 3. SIMULASI BACKTEST (HYBRID NEURO-SYMBOLIC + ATR FILTER) ---
-print("🚀 Memulai Backtesting (Mode: AI + Safety Net Lapis 3)...")
+# --- 3. SIMULASI BACKTEST (REVISI) ---
+print("🚀 Memulai Backtesting (Mode: AI + Safety Net dari Environment)...")
+# Gunakan Env (yang sudah direvisi) dengan data test
 env = CryptoTradingEnv(df_test)
 obs, _ = env.reset()
 
 net_worth_history = [env.initial_balance]
 timestamps = [df_test.index[0]]
-trades = []
-triggers_trend = 0
-triggers_rsi = 0
-triggers_atr = 0  # <-- Counter baru
+trades = []  # Kita tetap catat trades untuk visualisasi
+
+# (Counter trigger tidak lagi relevan di sini, karena env yang menangani)
 
 for i in range(len(df_test) - 1):
     action_ai, _ = model_dqn.predict(obs, deterministic=True)
     if isinstance(action_ai, np.ndarray):
         action_ai = action_ai.item()
 
-    final_action = action_ai
-    current_data = df_test.iloc[i]
-    current_price = current_data['close']
+    # ======================================================================
+    # === BAGIAN REVISI: LOGIKA SAFETY NET MANUAL DIHAPUS ===
+    # ======================================================================
+    #
+    # Blok '3 LAPIS SAFETY NET (Symbolic Layer)' yang sebelumnya
+    # ada di sini (if is_too_volatile, if is_downtrend, dll.)
+    # sekarang DIHAPUS.
+    #
+    # Kita langsung serahkan aksi mentah 'action_ai' ke environment,
+    # dan biarkan 'trading_env.py' yang baru menangani aturannya.
+    #
+    # ======================================================================
 
-    # --- 3 LAPIS SAFETY NET (Symbolic Layer) ---
+    # Ambil state sebelum step untuk mencatat trade (jika terjadi)
+    prev_balance_usdt = env.balance_usdt
+    prev_balance_btc = env.balance_btc
 
-    # RULE C: Volatility Filter (BARU)
-    current_atr = current_data['ATR']
-    natr = (current_atr / current_price) * 100 if current_price > 0 else 0
-    is_too_volatile = natr > VOLATILITY_THRESHOLD_PERCENT
+    # Langsung panggil step dengan aksi mentah dari AI
+    obs, reward, done, _, info = env.step(action_ai)
 
-    if is_too_volatile:
-        # Jika pasar badai, BLOKIR SEMUA AKSI (BUY atau SELL)
-        final_action = 1  # Paksa HOLD
-        triggers_atr += 1
-
-    # Jika lolos filter volatilitas, baru cek filter lain
-    elif action_ai == 2:  # AI mau BUY
-        # RULE A: Trend Filter
-        is_downtrend = current_price < current_data['SMA_30']
-        if is_downtrend:
-            final_action = 1  # Paksa HOLD
-            triggers_trend += 1
-
-        # RULE B: Momentum Filter
-        is_overbought = current_data['RSI'] > 70
-        if is_overbought:
-            final_action = 1  # Paksa HOLD
-            triggers_rsi += 1
-
-    # Catat trade
-    if final_action == 2 and env.balance_usdt > 10:
+    # Cek apakah trade benar-benar terjadi (dengan membandingkan saldo)
+    # Ini diperlukan agar visualisasi chart sesuai dengan apa yang
+    # *benar-benar dieksekusi* oleh environment
+    current_price = df_test.iloc[i]['close']
+    if env.balance_btc > prev_balance_btc and prev_balance_usdt > 10:
         trades.append(
             {'time': df_test.index[i], 'type': 'BUY', 'price': current_price})
-    elif final_action == 0 and env.balance_btc > 0.0001:
+    elif env.balance_usdt > prev_balance_usdt and prev_balance_btc > 0.0001:
         trades.append(
             {'time': df_test.index[i], 'type': 'SELL', 'price': current_price})
 
-    obs, reward, done, _, info = env.step(final_action)
     net_worth_history.append(info['net_worth'])
     timestamps.append(df_test.index[i+1])
 
@@ -151,8 +143,8 @@ print("\n" + "="*50)
 print(f"📊 LAPORAN FINAL SINTA 2 ({symbol_lower.upper()} + FILTER ATR)")
 print("="*50)
 print(f"Training Steps       : 1,000,000")
-print(
-    f"Safety Net Triggers  : (Trend: {triggers_trend}x, RSI: {triggers_rsi}x, ATR: {triggers_atr}x)")
+# (Safety Net Triggers tidak bisa dihitung dari sini lagi,
+#  tapi itu tidak masalah, hasil akhir lebih penting)
 print("-"*50)
 print(f"{'Metric':<20} | {'Final Bot':<12} | {'Benchmark (HODL)':<12}")
 print("-"*50)
