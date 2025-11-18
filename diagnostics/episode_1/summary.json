@@ -1,18 +1,15 @@
 {
   "episode": 1,
   "total_steps": 20970,
-  "total_trades": 5707,
-  "final_net_worth": 64.10010930327493,
-  "return_pct": -99.35899890696724,
+  "total_trades": 5510,
+  "final_net_worth": 73.11902693857775,
+  "return_pct": -99.26880973061422,
   "safety_triggers": {
     "buy_blocked_downtrend": 0,
-    "buy_blocked_overbought": 0,
+    "buy_blocked_overbought": 259,
     "buy_blocked_volatile": 0,
     "sell_blocked_volatile": 0,
-    "hyper_trading_penalized": 5382,
-    "opportunity_used": 1403,
-    "opportunity_missed": 0,
-    "exit_used": 0,
-    "total_blocks": 0
+    "hyper_trading_penalized": 5469,
+    "total_blocks": 259
   }
 }

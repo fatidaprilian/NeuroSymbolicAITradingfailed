@@ -1,16 +1,20 @@
 import pandas as pd
 import numpy as np
 import joblib
+import os
+import argparse
+from tqdm import tqdm
 from tensorflow.keras.models import load_model
 from stable_baselines3 import DQN
 from stable_baselines3.common.vec_env import DummyVecEnv
 from stable_baselines3.common.callbacks import BaseCallback
-from trading_env import CryptoTradingEnv
-import os
-import argparse
-from tqdm import tqdm
+from trading_env import CryptoTradingEnv   # V15.1 Production
 
-# === TQDM PROGRESS BAR CALLBACK ===
+
+# ======================
+# TQDM Progress Callback
+# ======================
+
 class TqdmCallback(BaseCallback):
     def __init__(self, total_timesteps, verbose=0):
         super().__init__(verbose)
@@ -19,21 +23,22 @@ class TqdmCallback(BaseCallback):
 
     def _on_training_start(self):
         self.pbar = tqdm(total=self.total_timesteps,
-                         desc="Training V11", unit="steps")
+                         desc="Training V15.1", unit="steps")
 
     def _on_step(self):
         self.pbar.update(1)
         if self.num_timesteps % 10000 == 0:
-            self.pbar.set_postfix({
-                'episode': self.n_calls,
-                'steps': self.num_timesteps
-            })
+            self.pbar.set_postfix({'steps': self.num_timesteps})
         return True
 
     def _on_training_end(self):
         self.pbar.close()
 
-# === EPISODE REWARD LOGGER CALLBACK ===
+
+# ======================
+# Reward Logger Callback
+# ======================
+
 class RewardLoggerCallback(BaseCallback):
     def __init__(self, log_path, verbose=0):
         super().__init__(verbose)
@@ -43,14 +48,17 @@ class RewardLoggerCallback(BaseCallback):
     def _on_step(self):
         if self.locals.get("dones") is not None and any(self.locals["dones"]):
             rewards = self.locals["rewards"]
-            with open(self.log_path, 'a') as f:
+            with open(self.log_path, "a") as f:
                 f.write(f"{self.num_timesteps},{rewards[0]}\n")
         return True
 
 
-# --- Argumen ---
+# ======================
+# Argument Parser
+# ======================
+
 parser = argparse.ArgumentParser(
-    description='Train DQN Agent V11 Production')
+    description="Train DQN Agent V15.1 Production")
 parser.add_argument('--symbol', type=str, default='btc')
 parser.add_argument('--scenario', type=str, default='adaptive',
                     choices=['adaptive', 'default', 'baseline'])
@@ -58,105 +66,147 @@ args = parser.parse_args()
 
 symbol_lower = args.symbol.lower()
 scenario = args.scenario.lower()
+
+MODEL_DIR = "ml_models"
+LOG_DIR = "logs"
+os.makedirs(MODEL_DIR, exist_ok=True)
+os.makedirs(LOG_DIR, exist_ok=True)
+
 data_filename = f"{symbol_lower}_1h_data.csv"
-model_dir = "ml_models"
-log_dir = "logs"
 model_save_name = f"dqn_agent_{symbol_lower}_{scenario}.zip"
 test_data_save_name = f"test_data_{symbol_lower}_{scenario}.csv"
 
+
+# ======================
+# LOAD PRICE DATA
+# ======================
+
 print(f"\n{'='*60}")
-print(f"🚀 TRAINING V11 PRODUCTION: [{symbol_lower.upper()}] [{scenario.upper()}]")
-print(f"   Validated by diagnostic: BUY +0.026, SELL +0.013, HOLD +0.003")
+print(
+    f"🚀 TRAINING V15.1 PRODUCTION: [{symbol_lower.upper()}] [{scenario.upper()}]")
 print(f"{'='*60}")
 
-# --- LOAD DATA ---
-print(f"📂 Loading data {symbol_lower} dari {data_filename}...")
+print(f"📂 Loading price data: {data_filename}")
 df = pd.read_csv(data_filename, index_col='timestamp', parse_dates=True)
 df = df.ffill()
 
-# --- Feature Engineering (FIXED TR calculation) ---
-print("🛠️ Feature Engineering V2...")
-df['SMA_7'] = df['close'].rolling(window=7).mean()
-df['SMA_30'] = df['close'].rolling(window=30).mean()
-df['EMA_12'] = df['close'].ewm(span=12, adjust=False).mean()
-df['EMA_26'] = df['close'].ewm(span=26, adjust=False).mean()
+
+# ======================
+# Feature Engineering V2
+# ======================
+
+print("🛠 Feature Engineering...")
+df['SMA_7'] = df['close'].rolling(7).mean()
+df['SMA_30'] = df['close'].rolling(30).mean()
+df['EMA_12'] = df['close'].ewm(span=12).mean()
+df['EMA_26'] = df['close'].ewm(span=26).mean()
 df['MACD'] = df['EMA_12'] - df['EMA_26']
-df['MACD_signal'] = df['MACD'].ewm(span=9, adjust=False).mean()
+df['MACD_signal'] = df['MACD'].ewm(span=9).mean()
+
 delta = df['close'].diff()
-gain = delta.where(delta > 0, 0).rolling(window=14).mean()
-loss = -delta.where(delta < 0, 0).rolling(window=14).mean()
+gain = delta.clip(lower=0).rolling(14).mean()
+loss = -delta.clip(upper=0).rolling(14).mean()
 rs = gain / loss
 df['RSI'] = 100 - (100 / (1 + rs))
 df['RSI'] = df['RSI'].fillna(50)
-df['BB_middle'] = df['close'].rolling(window=20).mean()
-df['BB_std'] = df['close'].rolling(window=20).std()
-df['BB_upper'] = df['BB_middle'] + (2 * df['BB_std'])
-df['BB_lower'] = df['BB_middle'] - (2 * df['BB_std'])
 
-# ✅ FIXED TR calculation
+df['BB_middle'] = df['close'].rolling(20).mean()
+df['BB_std'] = df['close'].rolling(20).std()
+df['BB_upper'] = df['BB_middle'] + 2 * df['BB_std']
+df['BB_lower'] = df['BB_middle'] - 2 * df['BB_std']
+
 df['tr1'] = df['high'] - df['low']
-df['tr2'] = (df['high'] - df['close'].shift(1)).abs()
-df['tr3'] = (df['low'] - df['close'].shift(1)).abs()
-df['tr'] = df[['tr1', 'tr2', 'tr3']].max(axis=1)
-df['ATR'] = df['tr'].rolling(window=14).mean()
+df['tr2'] = (df['high'] - df['close'].shift()).abs()
+df['tr3'] = (df['low'] - df['close'].shift()).abs()
+df['ATR'] = pd.concat([df['tr1'], df['tr2'], df['tr3']],
+                      axis=1).max(axis=1).rolling(14).mean()
 
 df.dropna(inplace=True)
-print(f"📊 Data after feature engineering: {len(df)} rows")
+print(f"📊 Rows after FE: {len(df)}")
 
-# --- Hybrid prediction ---
-print(f"🧠 Loading LR & LSTM models for {symbol_lower}...")
-model_lr = joblib.load(os.path.join(model_dir, f'model_lr_baseline_{symbol_lower}.pkl'))
-scaler_lr = joblib.load(os.path.join(model_dir, f'scaler_lr_{symbol_lower}.pkl'))
-model_lstm = load_model(os.path.join(model_dir, f'best_lstm_model_{symbol_lower}.keras'))
-scaler_lstm_features = joblib.load(os.path.join(model_dir, f'scaler_lstm_features_{symbol_lower}.pkl'))
-scaler_lstm_target = joblib.load(os.path.join(model_dir, f'scaler_lstm_target_{symbol_lower}.pkl'))
 
-print("🔮 Generating Hybrid predictions...")
+# ======================
+# Load Hybrid Models
+# ======================
+
+print(f"🧠 Loading LR + LSTM models for symbol: {symbol_lower}...")
+model_lr = joblib.load(f"ml_models/model_lr_baseline_{symbol_lower}.pkl")
+scaler_lr = joblib.load(f"ml_models/scaler_lr_{symbol_lower}.pkl")
+model_lstm = load_model(f"ml_models/best_lstm_model_{symbol_lower}.keras")
+scaler_lstm_features = joblib.load(
+    f"ml_models/scaler_lstm_features_{symbol_lower}.pkl")
+scaler_lstm_target = joblib.load(
+    f"ml_models/scaler_lstm_target_{symbol_lower}.pkl")
+
+
+# ======================
+# Hybrid Prediction
+# ======================
+
+print("🔮 Generating hybrid predictions...")
 features = ['close', 'volume', 'SMA_7', 'SMA_30', 'EMA_12', 'EMA_26',
             'MACD', 'MACD_signal', 'RSI', 'BB_upper', 'BB_lower', 'ATR']
-X_all = df[features]
-X_scaled_lr = scaler_lr.transform(X_all)
-pred_lr_all = model_lr.predict(X_scaled_lr)
 
-SEQ_LENGTH = 60
-pred_lstm_all = np.full(len(df), np.nan)
-X_scaled_lstm = scaler_lstm_features.transform(X_all.values)
-X_seq = np.array([X_scaled_lstm[i:i+SEQ_LENGTH]
-                 for i in range(len(X_scaled_lstm) - SEQ_LENGTH)])
-pred_lstm_seq = model_lstm.predict(X_seq, verbose=0, batch_size=2048)
-pred_lstm_all[SEQ_LENGTH:] = scaler_lstm_target.inverse_transform(pred_lstm_seq).flatten()
+X_lr = scaler_lr.transform(df[features])
+pred_lr = model_lr.predict(X_lr)
 
-df['prediction'] = (0.8 * pred_lr_all) + (0.2 * pred_lstm_all)
+SEQ_LEN = 60
+pred_lstm = np.full(len(df), np.nan)
+
+X_lstm_scaled = scaler_lstm_features.transform(df[features])
+X_seq = np.array([X_lstm_scaled[i:i+SEQ_LEN] for i in range(len(df)-SEQ_LEN)])
+
+pred_seq = model_lstm.predict(X_seq, verbose=0, batch_size=2048)
+pred_lstm[SEQ_LEN:] = scaler_lstm_target.inverse_transform(pred_seq).flatten()
+
+df['prediction'] = 0.8 * pred_lr + 0.2 * pred_lstm
 df.dropna(inplace=True)
-print(f"✅ Data ready for trading ({symbol_lower}): {len(df)} hours")
+print(f"🔢 Data ready: {len(df)} rows")
 
-# --- Split data ---
+
+# ======================
+# Training/Test Split
+# ======================
+
 train_size = int(len(df) * 0.8)
 df_train = df.iloc[:train_size]
 df_test = df.iloc[train_size:]
-print(f"Training RL with {len(df_train)} hours of data.")
 
-# --- Environment setup ---
-env_symbol_arg = 'default' if scenario == 'default' else symbol_lower
-enable_net_arg = False if scenario == 'baseline' else True
-print(f"Environment: symbol='{env_symbol_arg}', enable_safety_net={enable_net_arg}")
-env = DummyVecEnv([lambda: CryptoTradingEnv(
-    df_train, symbol=env_symbol_arg, enable_safety_net=enable_net_arg)])
+df_test.to_csv(f"{MODEL_DIR}/{test_data_save_name}")
+print(f"💾 Saved test data: {test_data_save_name}")
 
-# === V11 CRITICAL CHECK ===
+
+# ======================
+# Env Setup (V15.1)
+# ======================
+
+env_symbol = symbol_lower if scenario != 'default' else 'default'
+enable_net = scenario != 'baseline'
+
+print(f"Environment: symbol={env_symbol}, enable_safety_net={enable_net}")
+
+env = DummyVecEnv([
+    lambda: CryptoTradingEnv(df_train, symbol=env_symbol,
+                             enable_safety_net=enable_net)
+])
+
 obs_shape = env.observation_space.shape[0]
-print(f"✅ Environment [{scenario.upper()}] ready. Obs shape: {obs_shape}")
-if obs_shape != 11:
-    raise ValueError(f"❌ CRITICAL ERROR! Expected 11 features (V11), got {obs_shape}! Check trading_env.py cache!")
-print(f"✅ Confirmed: Environment using V11 (11 features including opportunity flags)")
+if obs_shape != 9:
+    raise ValueError(f"❌ ENV ERROR: Expected 9 features but got {obs_shape}.")
 
-# --- DQN Agent Setup (V11 Production) ---
-print(f"🤖 Initializing DQN V11 agent for [{scenario.upper()}]...")
+print("✅ Environment validated: V15.1 raw features")
+
+
+# ======================
+# DQN Setup
+# ======================
+
+print("🤖 Initializing DQN (V15.1)...")
+
 model_dqn = DQN(
     "MlpPolicy",
     env,
-    verbose=0,
-    learning_rate=0.00005,
+    learning_rate=5e-5,
     buffer_size=500000,
     learning_starts=10000,
     batch_size=64,
@@ -165,30 +215,27 @@ model_dqn = DQN(
     exploration_fraction=0.5,
     exploration_initial_eps=1.0,
     exploration_final_eps=0.05,
-    policy_kwargs=dict(net_arch=[256, 256, 128])
+    policy_kwargs=dict(net_arch=[256, 256, 128]),
+    verbose=0
 )
 
-# --- Training ---
-TOTAL_TIMESTEPS = 1_000_000
-print(f"\n🚀 === STARTING V11 TRAINING: {symbol_lower.upper()} [{scenario.upper()}] ===")
-print("✅ V11 VALIDATED: BUY +0.026, SELL +0.013, HOLD +0.003 (ALL POSITIVE!)")
-print("⚙️  Network: [256,256,128] | LR: 0.00005 | Exploration: 0.5")
-print("📊 Progress bar will show training status...\n")
 
-log_path = os.path.join(log_dir, f"rewards_{symbol_lower}_{scenario}.csv")
-tqdm_cb = TqdmCallback(total_timesteps=TOTAL_TIMESTEPS)
-logger_cb = RewardLoggerCallback(log_path=log_path)
-model_dqn.learn(total_timesteps=TOTAL_TIMESTEPS, callback=[tqdm_cb, logger_cb])
+# ======================
+# TRAINING
+# ======================
 
-print(f"\n✅ Training DQN V11 [{scenario.upper()}] completed!")
+TOTAL_STEPS = 1_000_000
+print(f"\n🚀 START TRAINING V15.1 — {TOTAL_STEPS:,} steps")
 
-# --- Save ---
-os.makedirs(model_dir, exist_ok=True)
-model_path = os.path.join(model_dir, model_save_name)
+tqdm_cb = TqdmCallback(TOTAL_STEPS)
+logger_cb = RewardLoggerCallback(
+    f"{LOG_DIR}/rewards_{symbol_lower}_{scenario}.csv")
+
+model_dqn.learn(total_timesteps=TOTAL_STEPS, callback=[tqdm_cb, logger_cb])
+
+# Save model
+model_path = f"{MODEL_DIR}/{model_save_name}"
 model_dqn.save(model_path)
-print(f"💾 Agent [{scenario.upper()}] saved to: {model_path}")
 
-test_data_path = os.path.join(model_dir, test_data_save_name)
-df_test.to_csv(test_data_path)
-print(f"💾 Test data [{scenario.upper()}] saved to: {test_data_path}")
-print(f"--- ✅ COMPLETED: {symbol_lower.upper()} [{scenario.upper()}] ---\n")
+print(f"\n💾 Model saved: {model_path}")
+print("🎯 Training complete.")

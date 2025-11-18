@@ -4,60 +4,79 @@ import joblib
 from tensorflow.keras.models import load_model
 from stable_baselines3 import DQN
 from stable_baselines3.common.vec_env import DummyVecEnv
-from trading_env_diagnostic import CryptoTradingEnvDiagnostic
+from stable_baselines3.common.callbacks import BaseCallback
+from trading_env_diagnostic import CryptoTradingEnvDiagnostic  # V11.1 ✅
 import os
 import argparse
+from tqdm import tqdm
 
-# === ARGUMENT PARSER ===
-parser = argparse.ArgumentParser(description='DQN Diagnostic Training')
-parser.add_argument('--symbol', type=str, default='btc',
-                    help='Symbol to train (btc/eth/xrp)')
-parser.add_argument('--scenario', type=str, default='adaptive',
-                    choices=['adaptive', 'default', 'baseline'])
+
+class TqdmCallback(BaseCallback):
+    def __init__(self, total_timesteps, verbose=0):
+        super().__init__(verbose)
+        self.pbar = None
+        self.total_timesteps = total_timesteps
+
+    def _on_training_start(self):
+        self.pbar = tqdm(total=self.total_timesteps,
+                         desc="Training Diagnostic V11.1", unit="steps")
+
+    def _on_step(self):
+        self.pbar.update(1)
+        if self.num_timesteps % 1000 == 0:
+            self.pbar.set_postfix({
+                'episode': self.n_calls,
+                'steps': self.num_timesteps
+            })
+        return True
+
+    def _on_training_end(self):
+        self.pbar.close()
+
+
+# --- Argumen ---
+parser = argparse.ArgumentParser(
+    description='Train V11.1 Diagnostic Agent')
+parser.add_argument('--symbol', type=str, default='btc')
+parser.add_argument('--scenario', type=str, default='adaptive')
 parser.add_argument('--steps', type=int, default=50000,
-                    help='Training timesteps (default: 50k for diagnostic)')
+                    help='Diagnostic steps (default: 50k)')
 args = parser.parse_args()
 
 symbol_lower = args.symbol.lower()
 scenario = args.scenario.lower()
 TOTAL_TIMESTEPS = args.steps
 
-print(f"\n{'='*60}")
-print(f"🔬 DIAGNOSTIC TRAINING: [{symbol_lower.upper()}] [{scenario.upper()}]")
-print(f"   Quick run: {TOTAL_TIMESTEPS:,} steps for analysis purposes")
-print(f"{'='*60}")
-
-# === PATHS ===
 data_filename = f"{symbol_lower}_1h_data.csv"
 model_dir = "ml_models"
-diagnostic_dir = "diagnostics"
 
-# === 1. LOAD DATA ===
+print(f"\n{'='*60}")
+print(f"🔬 DIAGNOSTIC V11.1: [{symbol_lower.upper()}] [{scenario.upper()}]")
+print(f"   CHANGES FROM V11:")
+print(f"   - BUY conditions: AND → OR (more opportunities)")
+print(f"   - SELL conditions: Added take profit (5%, 10%, 15%)")
+print(f"   - Expected: 25-40% opportunity usage (was 9%)")
+print(f"{'='*60}")
+
+# --- LOAD DATA ---
 print(f"📂 Loading data {symbol_lower} dari {data_filename}...")
-try:
-    df = pd.read_csv(data_filename, index_col='timestamp', parse_dates=True)
-except FileNotFoundError:
-    print(f"❌ Error: File {data_filename} tidak ditemukan.")
-    exit()
-
+df = pd.read_csv(data_filename, index_col='timestamp', parse_dates=True)
 df = df.ffill()
 
-# === 2. FEATURE ENGINEERING ===
-print("🛠️ Feature Engineering...")
+# --- Feature Engineering ---
+print("🛠️ Feature Engineering V2...")
 df['SMA_7'] = df['close'].rolling(window=7).mean()
 df['SMA_30'] = df['close'].rolling(window=30).mean()
 df['EMA_12'] = df['close'].ewm(span=12, adjust=False).mean()
 df['EMA_26'] = df['close'].ewm(span=26, adjust=False).mean()
 df['MACD'] = df['EMA_12'] - df['EMA_26']
 df['MACD_signal'] = df['MACD'].ewm(span=9, adjust=False).mean()
-
 delta = df['close'].diff()
 gain = delta.where(delta > 0, 0).rolling(window=14).mean()
 loss = -delta.where(delta < 0, 0).rolling(window=14).mean()
 rs = gain / loss
 df['RSI'] = 100 - (100 / (1 + rs))
 df['RSI'] = df['RSI'].fillna(50)
-
 df['BB_middle'] = df['close'].rolling(window=20).mean()
 df['BB_std'] = df['close'].rolling(window=20).std()
 df['BB_upper'] = df['BB_middle'] + (2 * df['BB_std'])
@@ -70,30 +89,25 @@ df['tr'] = df[['tr1', 'tr2', 'tr3']].max(axis=1)
 df['ATR'] = df['tr'].rolling(window=14).mean()
 
 df.dropna(inplace=True)
+print(f"📊 Data after feature engineering: {len(df)} rows")
 
-# === 3. LOAD PREDICTION MODELS ===
+# --- Hybrid prediction ---
 print(f"🧠 Loading LR & LSTM models for {symbol_lower}...")
-try:
-    model_lr = joblib.load(os.path.join(
-        model_dir, f'model_lr_baseline_{symbol_lower}.pkl'))
-    scaler_lr = joblib.load(os.path.join(
-        model_dir, f'scaler_lr_{symbol_lower}.pkl'))
-    model_lstm = load_model(os.path.join(
-        model_dir, f'best_lstm_model_{symbol_lower}.keras'))
-    scaler_lstm_features = joblib.load(os.path.join(
-        model_dir, f'scaler_lstm_features_{symbol_lower}.pkl'))
-    scaler_lstm_target = joblib.load(os.path.join(
-        model_dir, f'scaler_lstm_target_{symbol_lower}.pkl'))
-except FileNotFoundError as e:
-    print(f"❌ Error: Model files not found. {e}")
-    exit()
+model_lr = joblib.load(os.path.join(
+    model_dir, f'model_lr_baseline_{symbol_lower}.pkl'))
+scaler_lr = joblib.load(os.path.join(
+    model_dir, f'scaler_lr_{symbol_lower}.pkl'))
+model_lstm = load_model(os.path.join(
+    model_dir, f'best_lstm_model_{symbol_lower}.keras'))
+scaler_lstm_features = joblib.load(os.path.join(
+    model_dir, f'scaler_lstm_features_{symbol_lower}.pkl'))
+scaler_lstm_target = joblib.load(os.path.join(
+    model_dir, f'scaler_lstm_target_{symbol_lower}.pkl'))
 
-# === 4. GENERATE PREDICTIONS ===
 print("🔮 Generating Hybrid predictions...")
 features = ['close', 'volume', 'SMA_7', 'SMA_30', 'EMA_12', 'EMA_26',
             'MACD', 'MACD_signal', 'RSI', 'BB_upper', 'BB_lower', 'ATR']
 X_all = df[features]
-
 X_scaled_lr = scaler_lr.transform(X_all)
 pred_lr_all = model_lr.predict(X_scaled_lr)
 
@@ -108,57 +122,66 @@ pred_lstm_all[SEQ_LENGTH:] = scaler_lstm_target.inverse_transform(
 
 df['prediction'] = (0.8 * pred_lr_all) + (0.2 * pred_lstm_all)
 df.dropna(inplace=True)
+print(f"✅ Data ready for diagnostic ({symbol_lower}): {len(df)} hours")
 
-# === 5. TRAIN-TEST SPLIT ===
+# --- Split data (use train portion only for diagnostic) ---
 train_size = int(len(df) * 0.8)
 df_train = df.iloc[:train_size]
-print(f"Training with {len(df_train)} hours of data.")
+print(f"Diagnostic with {len(df_train)} hours of training data.")
 
-# === 6. CREATE DIAGNOSTIC ENVIRONMENT ===
+# --- Environment setup (V11.1 DIAGNOSTIC) ---
 env_symbol_arg = 'default' if scenario == 'default' else symbol_lower
 enable_net_arg = False if scenario == 'baseline' else True
 
-print(f"🔬 Creating DIAGNOSTIC environment...")
-print(f"   symbol='{env_symbol_arg}', enable_safety_net={enable_net_arg}")
-print(f"   diagnostic_mode=True, logging to '{diagnostic_dir}/' folder")
+print(
+    f"Environment: symbol='{env_symbol_arg}', enable_safety_net={enable_net_arg}")
 
+# Create wrapped environment for DQN
 env = DummyVecEnv([lambda: CryptoTradingEnvDiagnostic(
     df_train,
     symbol=env_symbol_arg,
     enable_safety_net=enable_net_arg,
     diagnostic_mode=True,
-    diagnostic_log_path=diagnostic_dir
+    diagnostic_log_path='diagnostics'
 )])
 
-# === 7. CREATE DQN AGENT ===
-print(f"🤖 Initializing DQN agent...")
+obs_shape = env.observation_space.shape[0]
+print(f"✅ Diagnostic Environment [V13] ready. Obs shape: {obs_shape}")
+if obs_shape != 9:  # ✅ V13 uses 9 features!
+    raise ValueError(
+        f"❌ CRITICAL ERROR! Expected 9 features (V13 raw), got {obs_shape}!")
+print(f"✅ Confirmed: V13 with raw features (no opportunity flags)")
+
+# --- DQN Agent Setup (SAME AS V11 - NOT AGGRESSIVE) ---
+print(f"🤖 Initializing DQN diagnostic agent...")
 model_dqn = DQN(
     "MlpPolicy",
     env,
     verbose=0,
-    learning_rate=0.00005,
+    learning_rate=0.00005,         # Same as V11 (not aggressive)
     buffer_size=500000,
-    learning_starts=10000,
-    batch_size=64,
+    learning_starts=10000,         # Same as V11
+    batch_size=64,                 # Same as V11
     gamma=0.99,
-    target_update_interval=1000,
-    exploration_fraction=0.5,
+    target_update_interval=1000,   # Same as V11
+    exploration_fraction=0.5,      # Same as V11 (50% exploration)
     exploration_initial_eps=1.0,
-    exploration_final_eps=0.05,
+    exploration_final_eps=0.05,    # Same as V11
     policy_kwargs=dict(net_arch=[256, 256, 128])
 )
 
-# === 8. TRAIN ===
-print(f"🚀 Starting diagnostic training ({TOTAL_TIMESTEPS:,} steps)...")
-print("   This will take ~10-15 minutes for 50k steps")
-print("   (vs 2-3 hours for full 1M steps)\n")
+# --- Training ---
+print(
+    f"\n🚀 === STARTING V11.1 DIAGNOSTIC: {symbol_lower.upper()} [{scenario.upper()}] ===")
+print(f"📊 Diagnostic steps: {TOTAL_TIMESTEPS:,}")
+print("🔬 Testing: Relaxed opportunities + take profit triggers")
+print("🎯 Expected: Opportunity usage 25-40% (vs 9% in V11)\n")
 
-model_dqn.learn(total_timesteps=TOTAL_TIMESTEPS)
+tqdm_cb = TqdmCallback(total_timesteps=TOTAL_TIMESTEPS)
+model_dqn.learn(total_timesteps=TOTAL_TIMESTEPS, callback=[tqdm_cb])
 
 print(f"\n✅ Diagnostic training completed!")
-print(f"📊 Diagnostic logs saved in: {diagnostic_dir}/")
-print(f"\nNext steps:")
-print(f"  1. Run: python analyze_diagnostics.py")
-print(f"  2. Read the analysis report")
-print(f"  3. Implement recommended fixes")
-print(f"  4. Re-run this diagnostic to verify\n")
+print(f"📁 Diagnostic logs saved to: diagnostics/")
+print(f"\n🔍 Next: Run analysis with:")
+print(f"   python analyze_diagnostics.py")
+print(f"\n{'='*60}")
