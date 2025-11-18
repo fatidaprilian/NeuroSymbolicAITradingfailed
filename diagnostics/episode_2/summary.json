@@ -1,0 +1,18 @@
+{
+  "episode": 2,
+  "total_steps": 20970,
+  "total_trades": 1994,
+  "final_net_worth": 1304.514944794194,
+  "return_pct": -86.95485055205805,
+  "safety_triggers": {
+    "buy_blocked_downtrend": 0,
+    "buy_blocked_overbought": 0,
+    "buy_blocked_volatile": 0,
+    "sell_blocked_volatile": 0,
+    "hyper_trading_penalized": 1152,
+    "opportunity_used": 519,
+    "opportunity_missed": 0,
+    "exit_used": 0,
+    "total_blocks": 0
+  }
+}
