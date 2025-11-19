@@ -8,7 +8,7 @@ from tensorflow.keras.models import load_model
 from stable_baselines3 import DQN
 from stable_baselines3.common.vec_env import DummyVecEnv
 from stable_baselines3.common.callbacks import BaseCallback
-from trading_env import CryptoTradingEnv   # V15.1 Production
+from trading_env import CryptoTradingEnv   # V17 Production
 
 
 # ======================
@@ -22,8 +22,11 @@ class TqdmCallback(BaseCallback):
         self.total_timesteps = total_timesteps
 
     def _on_training_start(self):
-        self.pbar = tqdm(total=self.total_timesteps,
-                         desc="Training V15.1", unit="steps")
+        self.pbar = tqdm(
+            total=self.total_timesteps,
+            desc="Training V17 Production",
+            unit="steps"
+        )
 
     def _on_step(self):
         self.pbar.update(1)
@@ -58,10 +61,15 @@ class RewardLoggerCallback(BaseCallback):
 # ======================
 
 parser = argparse.ArgumentParser(
-    description="Train DQN Agent V15.1 Production")
+    description="Train DQN Agent V17 Production (Cost-of-Action + Hold Reward)"
+)
 parser.add_argument('--symbol', type=str, default='btc')
-parser.add_argument('--scenario', type=str, default='adaptive',
-                    choices=['adaptive', 'default', 'baseline'])
+parser.add_argument(
+    '--scenario',
+    type=str,
+    default='adaptive',
+    choices=['adaptive', 'default', 'baseline']
+)
 args = parser.parse_args()
 
 symbol_lower = args.symbol.lower()
@@ -83,7 +91,7 @@ test_data_save_name = f"test_data_{symbol_lower}_{scenario}.csv"
 
 print(f"\n{'='*60}")
 print(
-    f"🚀 TRAINING V15.1 PRODUCTION: [{symbol_lower.upper()}] [{scenario.upper()}]")
+    f"🚀 TRAINING V17 PRODUCTION: [{symbol_lower.upper()}] [{scenario.upper()}]")
 print(f"{'='*60}")
 
 print(f"📂 Loading price data: {data_filename}")
@@ -118,8 +126,10 @@ df['BB_lower'] = df['BB_middle'] - 2 * df['BB_std']
 df['tr1'] = df['high'] - df['low']
 df['tr2'] = (df['high'] - df['close'].shift()).abs()
 df['tr3'] = (df['low'] - df['close'].shift()).abs()
-df['ATR'] = pd.concat([df['tr1'], df['tr2'], df['tr3']],
-                      axis=1).max(axis=1).rolling(14).mean()
+df['ATR'] = pd.concat(
+    [df['tr1'], df['tr2'], df['tr3']],
+    axis=1
+).max(axis=1).rolling(14).mean()
 
 df.dropna(inplace=True)
 print(f"📊 Rows after FE: {len(df)}")
@@ -134,9 +144,11 @@ model_lr = joblib.load(f"ml_models/model_lr_baseline_{symbol_lower}.pkl")
 scaler_lr = joblib.load(f"ml_models/scaler_lr_{symbol_lower}.pkl")
 model_lstm = load_model(f"ml_models/best_lstm_model_{symbol_lower}.keras")
 scaler_lstm_features = joblib.load(
-    f"ml_models/scaler_lstm_features_{symbol_lower}.pkl")
+    f"ml_models/scaler_lstm_features_{symbol_lower}.pkl"
+)
 scaler_lstm_target = joblib.load(
-    f"ml_models/scaler_lstm_target_{symbol_lower}.pkl")
+    f"ml_models/scaler_lstm_target_{symbol_lower}.pkl"
+)
 
 
 # ======================
@@ -144,8 +156,10 @@ scaler_lstm_target = joblib.load(
 # ======================
 
 print("🔮 Generating hybrid predictions...")
-features = ['close', 'volume', 'SMA_7', 'SMA_30', 'EMA_12', 'EMA_26',
-            'MACD', 'MACD_signal', 'RSI', 'BB_upper', 'BB_lower', 'ATR']
+features = [
+    'close', 'volume', 'SMA_7', 'SMA_30', 'EMA_12', 'EMA_26',
+    'MACD', 'MACD_signal', 'RSI', 'BB_upper', 'BB_lower', 'ATR'
+]
 
 X_lr = scaler_lr.transform(df[features])
 pred_lr = model_lr.predict(X_lr)
@@ -154,7 +168,8 @@ SEQ_LEN = 60
 pred_lstm = np.full(len(df), np.nan)
 
 X_lstm_scaled = scaler_lstm_features.transform(df[features])
-X_seq = np.array([X_lstm_scaled[i:i+SEQ_LEN] for i in range(len(df)-SEQ_LEN)])
+X_seq = np.array([X_lstm_scaled[i:i + SEQ_LEN]
+                  for i in range(len(df) - SEQ_LEN)])
 
 pred_seq = model_lstm.predict(X_seq, verbose=0, batch_size=2048)
 pred_lstm[SEQ_LEN:] = scaler_lstm_target.inverse_transform(pred_seq).flatten()
@@ -177,7 +192,7 @@ print(f"💾 Saved test data: {test_data_save_name}")
 
 
 # ======================
-# Env Setup (V15.1)
+# Env Setup (V17)
 # ======================
 
 env_symbol = symbol_lower if scenario != 'default' else 'default'
@@ -194,14 +209,14 @@ obs_shape = env.observation_space.shape[0]
 if obs_shape != 9:
     raise ValueError(f"❌ ENV ERROR: Expected 9 features but got {obs_shape}.")
 
-print("✅ Environment validated: V15.1 raw features")
+print("✅ Environment validated: V17 raw features (9-dim)")
 
 
 # ======================
 # DQN Setup
 # ======================
 
-print("🤖 Initializing DQN (V15.1)...")
+print("🤖 Initializing DQN (V17 Production)...")
 
 model_dqn = DQN(
     "MlpPolicy",
@@ -216,7 +231,7 @@ model_dqn = DQN(
     exploration_initial_eps=1.0,
     exploration_final_eps=0.05,
     policy_kwargs=dict(net_arch=[256, 256, 128]),
-    verbose=0
+    verbose=0,
 )
 
 
@@ -225,11 +240,12 @@ model_dqn = DQN(
 # ======================
 
 TOTAL_STEPS = 1_000_000
-print(f"\n🚀 START TRAINING V15.1 — {TOTAL_STEPS:,} steps")
+print(f"\n🚀 START TRAINING V17 — {TOTAL_STEPS:,} steps")
 
 tqdm_cb = TqdmCallback(TOTAL_STEPS)
 logger_cb = RewardLoggerCallback(
-    f"{LOG_DIR}/rewards_{symbol_lower}_{scenario}.csv")
+    f"{LOG_DIR}/rewards_{symbol_lower}_{scenario}.csv"
+)
 
 model_dqn.learn(total_timesteps=TOTAL_STEPS, callback=[tqdm_cb, logger_cb])
 

@@ -1,0 +1,25 @@
+============================================================
+V15.1 BACKUP INFORMATION
+============================================================
+
+Backup Date: 2025-11-19 05:48:43
+Version: V15.1 (Financial-Focused + Light Boost)
+
+KEY CHARACTERISTICS V15.1:
+- Pure financial reward (log-return + realized PnL)
+- Idle penalty: 0.007 base, 1.02 growth, 0.14 max
+- Hyper-trading penalty: 0.0012 (BTC/ETH), 0.0009 (XRP)
+- Action bonus: 0.03
+- Safety net penalty: -0.006
+
+KNOWN ISSUES:
+- Severe overtrading in BTC/ETH (934-4832 trades)
+- ETH Adaptive: -99.17% return
+- BTC models: -57% to -64% return
+- Safety net ineffective against overtrading
+
+REASON FOR V15.2:
+- Strengthen hyper-trading penalties
+- Add hard trade count limits
+- Soften idle penalties
+- Increase minimum trade gaps

@@ -1,0 +1,19 @@
+{
+  "episode": 37,
+  "version": "V17",
+  "total_steps": 1670,
+  "total_trades": 80,
+  "final_net_worth": 9761.978584439314,
+  "return_pct": -2.380214155606864,
+  "max_trades_limit": 80,
+  "safety_triggers": {
+    "buy_blocked_downtrend": 0,
+    "buy_blocked_overbought": 13,
+    "buy_blocked_volatile": 0,
+    "sell_blocked_volatile": 0,
+    "hyper_trading_penalized": 65,
+    "rapid_trading_blocked": 312,
+    "hard_limit_reached": 0,
+    "total_blocks": 325
+  }
+}

@@ -5,25 +5,43 @@ import numpy as np
 
 class CryptoTradingEnv(gym.Env):
     """
-    V15.1 PRODUCTION — FINANCIAL-FOCUSED + LIGHT BOOST
+    V17.1 PRODUCTION — COST-OF-ACTION + POSITIONAL HOLD REWARD
 
-    - Pure financial reward (log-return + realized PnL)
-    - Idle penalty softened for 70–200 trades
-    - Hyper-trading penalty softened (asset-specific)
-    - Action bonus small (0.03)
-    - Safety net aligned with diagnostic environment
+    Perbedaan utama dari V17:
+
+    - HOLD_REWARD hanya diberikan ketika:
+        -> final_action == HOLD
+        -> DAN sedang memegang BTC (balance_btc > 0)
+      => Jadi HOLD di cash (full USDT) tidak diganjar reward.
+    - Idle penalty kecil hanya ketika full USDT (belum/ tidak pegang posisi):
+        -> Mendorong agent untuk sesekali masuk market.
+    - BUY/SELL tetap kena TRADE_COST < 0.
+    - Log-return net worth tetap jadi komponen reward utama.
+    - Safety net & hyper-trading penalty tetap aktif.
 
     Obs (9 features):
       [close, prediction, RSI, MACD, SMA_7, ATR,
        balance_usdt, balance_btc, net_worth]
+
+    Actions:
+      0 = SELL
+      1 = HOLD
+      2 = BUY
     """
 
     metadata = {"render_modes": ["human"], "render_fps": 4}
 
-    def __init__(self, df, initial_balance=10000, fee=0.001,
-                 symbol='btc', enable_safety_net=True, log_trades=False):
-
+    def __init__(
+        self,
+        df,
+        initial_balance=10000,
+        fee=0.001,
+        symbol='btc',
+        enable_safety_net=True,
+        log_trades=False,
+    ):
         super().__init__()
+
         self.df = df.reset_index(drop=True)
         self.initial_balance = initial_balance
         self.fee = fee
@@ -31,55 +49,74 @@ class CryptoTradingEnv(gym.Env):
         self.enable_safety_net = enable_safety_net
         self.log_trades = log_trades
 
-        # ===== SYMBOL-specific settings =====
+        # ===== SYMBOL-specific settings (selaras V17 diagnostic) =====
         if self.symbol == 'btc':
             self.RSI_OVERBOUGHT = 80
             self.RSI_OVERSOLD = 20
             self.VOLATILITY_THRESHOLD_PERCENT = 15
-            self.min_trade_gap = 20
-            self.hyper_penalty_multiplier = 0.0012     # softer (V15.1)
+
+            self.min_trade_gap = 30
+            self.hyper_penalty_multiplier = 0.006
+
         elif self.symbol == 'eth':
             self.RSI_OVERBOUGHT = 78
             self.RSI_OVERSOLD = 22
             self.VOLATILITY_THRESHOLD_PERCENT = 12
-            self.min_trade_gap = 16
-            self.hyper_penalty_multiplier = 0.0012
+
+            self.min_trade_gap = 25
+            self.hyper_penalty_multiplier = 0.008
+
         elif self.symbol == 'xrp':
             self.RSI_OVERBOUGHT = 82
             self.RSI_OVERSOLD = 18
             self.VOLATILITY_THRESHOLD_PERCENT = 18
-            self.min_trade_gap = 10
-            self.hyper_penalty_multiplier = 0.0009
+
+            self.min_trade_gap = 15
+            self.hyper_penalty_multiplier = 0.003
         else:
             self.RSI_OVERBOUGHT = 80
             self.RSI_OVERSOLD = 20
             self.VOLATILITY_THRESHOLD_PERCENT = 15
-            self.min_trade_gap = 18
-            self.hyper_penalty_multiplier = 0.0012
+            self.min_trade_gap = 25
+            self.hyper_penalty_multiplier = 0.006
 
-        self.SAFETY_NET_PENALTY = -0.006  # softer from -0.008
+        # ===== Safety Net Penalty =====
+        self.SAFETY_NET_PENALTY = -0.05
 
-        # ===== Reward shaping (V15.1) =====
-        self.base_idle_penalty = 0.007
-        self.idle_growth_factor = 1.02
-        self.max_idle_penalty = 0.14
+        # ===== Reward params V17.1 =====
 
-        self.trade_profit_multiplier = 24.0
+        # Idle penalty: kecil, cuma ketika full USDT
+        self.base_idle_penalty = 0.001
+        self.idle_growth_factor = 1.005
+        self.max_idle_penalty = 0.02
+
+        # HOLD reward hanya saat memegang posisi (BTC > 0)
+        self.HOLD_REWARD_POSITION = 0.002  # lebih kecil dari 0.003 global
+
+        # Biaya aksi BUY/SELL → trading tetap mahal
+        self.TRADE_COST = -0.01
+
+        # Reward trade (realized PnL)
+        self.trade_profit_multiplier = 18.0
         self.big_win_bonus = 0.06
         self.big_win_threshold = 0.01
 
-        self.action_bonus = 0.03
-        self.unrealized_profit_multiplier = 0.006
+        # Tidak ada action bonus brute-force
+        self.action_bonus = 0.0
 
+        # Unrealized profit reward ketika HOLD posisi untung
+        self.unrealized_profit_multiplier = 0.008
+
+        # Hyper-trading control
         self.consecutive_idle_threshold = 90
         self.exploration_trades_exemption = 5
 
-        # === NEW: trade history untuk backtest ===
+        # Trade history untuk analisis/backtest
         self.trade_history = []
 
-        # === NEW: safety net triggers lengkap (biar run_test nggak KeyError) ===
+        # Safety net triggers
         self.safety_net_triggers = {
-            'buy_blocked_downtrend': 0,    # ini mungkin tetap 0, gapapa
+            'buy_blocked_downtrend': 0,
             'buy_blocked_overbought': 0,
             'buy_blocked_volatile': 0,
             'sell_blocked_volatile': 0,
@@ -90,15 +127,18 @@ class CryptoTradingEnv(gym.Env):
         # ===== Spaces =====
         self.action_space = spaces.Discrete(3)
         self.observation_space = spaces.Box(
-            low=-np.inf, high=np.inf, shape=(9,), dtype=np.float32
+            low=-np.inf,
+            high=np.inf,
+            shape=(9,),
+            dtype=np.float32,
         )
 
-        # ===== Init state =====
         self.reset()
 
     # ========== RESET ==========
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
+
         self.balance_usdt = self.initial_balance
         self.balance_btc = 0.0
 
@@ -109,9 +149,8 @@ class CryptoTradingEnv(gym.Env):
         self.current_step = 0
         self.steps_since_last_trade = 0
         self.trade_count = 0
-        self.entry_price = 0
+        self.entry_price = 0.0
 
-        # reset triggers & trade history
         for k in self.safety_net_triggers:
             self.safety_net_triggers[k] = 0
         self.trade_history = []
@@ -139,9 +178,8 @@ class CryptoTradingEnv(gym.Env):
         d = self.df.iloc[self.current_step]
         price = d['close']
 
-        # ===== Safety flags =====
         sma30 = d.get('SMA_30', d['SMA_7'])
-        natr = (d['ATR'] / price) * 100
+        natr = (d['ATR'] / price) * 100 if price > 0 else 0.0
 
         is_downtrend = price < sma30
         is_overbought = d['RSI'] > self.RSI_OVERBOUGHT
@@ -153,7 +191,7 @@ class CryptoTradingEnv(gym.Env):
 
         # ===== Safety Net =====
         if self.enable_safety_net:
-            if action == 2:
+            if action == 2:  # BUY
                 if is_volatile and is_downtrend:
                     final_action = 1
                     blocked = True
@@ -181,7 +219,7 @@ class CryptoTradingEnv(gym.Env):
             fee = btc * self.fee
 
             self.balance_btc += (btc - fee)
-            self.balance_usdt = 0
+            self.balance_usdt = 0.0
             self.entry_price = price
 
             executed = "BUY"
@@ -203,7 +241,7 @@ class CryptoTradingEnv(gym.Env):
             fee = usdt * self.fee
 
             self.balance_usdt += (usdt - fee)
-            self.balance_btc = 0
+            self.balance_btc = 0.0
 
             executed = "SELL"
             self.trade_count += 1
@@ -217,49 +255,47 @@ class CryptoTradingEnv(gym.Env):
                     'time': self.df.index[self.current_step]
                 })
 
-            self.entry_price = 0
-
+            self.entry_price = 0.0
         else:
             self.steps_since_last_trade += 1
 
-        # ===== Update price & net worth =====
+        # ===== Update step & net worth =====
         self.current_step += 1
         done = self.current_step >= len(self.df) - 1
 
         next_price = self.df.iloc[self.current_step]['close']
         self.net_worth = self.balance_usdt + (self.balance_btc * next_price)
 
-        # ===== BASE REWARD (financial) =====
+        # ===== BASE REWARD (log-return net worth) =====
         if self.net_worth > 0 and self.prev_net_worth > 0:
             reward = np.log(self.net_worth / self.prev_net_worth)
         else:
-            reward = 0
+            reward = 0.0
 
         # ===== SAFETY PENALTY =====
         if blocked:
             reward += self.SAFETY_NET_PENALTY
 
-        # ===== IDLE PENALTY =====
-        if final_action == 1 and not blocked:
-            idle_steps = self.steps_since_last_trade
+        # ===== HOLD REWARD (hanya kalau ADA posisi) =====
+        if final_action == 1 and not blocked and self.balance_btc > 0:
+            reward += self.HOLD_REWARD_POSITION
 
+        # ===== Idle penalty kecil kalau full USDT =====
+        if final_action == 1 and not blocked and self.balance_btc == 0:
+            idle_steps = self.steps_since_last_trade
             idle_pen = self.base_idle_penalty * (
                 self.idle_growth_factor ** min(idle_steps, 200)
             )
             idle_pen = min(idle_pen, self.max_idle_penalty)
+            reward -= idle_pen
 
-            if self.balance_usdt > 0:
-                reward -= idle_pen
-            elif self.balance_btc > 0:
-                reward -= idle_pen * 0.6
-
-        # ===== Unrealized profit reward =====
+        # ===== Unrealized profit reward (posisi HOLD yang untung) =====
         if self.balance_btc > 0 and final_action == 1 and self.entry_price > 0:
             upct = (price - self.entry_price) / self.entry_price
             if upct > 0:
                 reward += upct * self.unrealized_profit_multiplier
 
-        # ===== Realized PnL =====
+        # ===== Realized PnL (SELL) =====
         if executed == "SELL":
             pct = (self.net_worth - self.prev_net_worth) / self.prev_net_worth
             if pct > 0:
@@ -269,18 +305,17 @@ class CryptoTradingEnv(gym.Env):
             else:
                 reward += pct * 5.0
 
-        # ===== Action bonus =====
+        # ===== Cost-of-Action (BUY/SELL) =====
         if executed in ["BUY", "SELL"]:
-            reward += self.action_bonus
+            reward += self.TRADE_COST
 
-        # ===== Hyper trading =====
+        # ===== Hyper trading control =====
         if executed in ["BUY", "SELL"] and trade_gap is not None:
             if self.trade_count > self.exploration_trades_exemption:
                 if trade_gap < self.min_trade_gap:
                     penalty = self.hyper_penalty_multiplier * (
                         self.min_trade_gap - trade_gap
                     )
-
                     reward -= penalty
                     self.safety_net_triggers['hyper_trading_penalized'] += 1
 
@@ -288,10 +323,15 @@ class CryptoTradingEnv(gym.Env):
                         self.trade_history[-1]['hyper_penalty'] = float(
                             penalty)
 
-        # ===== Store prev =====
         self.prev_net_worth = self.net_worth
+        if self.net_worth > self.max_net_worth:
+            self.max_net_worth = self.net_worth
 
-        return self._next_observation(), reward, done, False, {
+        info = {
             "net_worth": self.net_worth,
-            "executed": executed
+            "executed": executed,
+            "trade_count": self.trade_count,
+            "safety_triggers": dict(self.safety_net_triggers),
         }
+
+        return self._next_observation(), reward, done, False, info

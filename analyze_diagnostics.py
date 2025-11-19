@@ -1,360 +1,267 @@
-import os
+"""
+ANALYZE DIAGNOSTICS V15.4
+
+Analyze diagnostic logs and compare behavior (trade count, blocks, rewards).
+"""
+
 import json
+import os
+import glob
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
-from collections import Counter
+import argparse
+from pathlib import Path
 
-# === CONFIGURATION ===
-DIAGNOSTIC_DIR = "diagnostics"
 
-print("\n" + "="*60)
-print("🔬 DIAGNOSTIC ANALYSIS TOOL")
-print("="*60)
+def load_episode_diagnostics(episode_dir):
+    """Load all diagnostic files for an episode"""
+    try:
+        with open(os.path.join(episode_dir, 'summary.json'), 'r') as f:
+            summary = json.load(f)
 
-# === 1. LOAD ALL EPISODE DATA ===
-episodes = []
-for folder in os.listdir(DIAGNOSTIC_DIR):
-    if folder.startswith("episode_"):
-        episode_path = os.path.join(DIAGNOSTIC_DIR, folder)
-        try:
-            with open(os.path.join(episode_path, 'summary.json'), 'r') as f:
-                summary = json.load(f)
-            with open(os.path.join(episode_path, 'reward_components.json'), 'r') as f:
-                rewards = json.load(f)
-            with open(os.path.join(episode_path, 'actions.json'), 'r') as f:
-                actions = json.load(f)
-            with open(os.path.join(episode_path, 'states.json'), 'r') as f:
-                states = json.load(f)
-            
-            episodes.append({
-                'summary': summary,
-                'rewards': rewards,
-                'actions': actions,
-                'states': states,
-                'path': episode_path
-            })
-        except Exception as e:
-            print(f"⚠️  Warning: Could not load {folder}: {e}")
+        with open(os.path.join(episode_dir, 'reward_components.json'), 'r') as f:
+            rewards = json.load(f)
 
-if len(episodes) == 0:
-    print("\n❌ No episodes found in 'diagnostics/' folder!")
-    print("   Please run: python train_dqn_diagnostic.py first\n")
-    exit()
+        with open(os.path.join(episode_dir, 'actions.json'), 'r') as f:
+            actions = json.load(f)
 
-print(f"\n📊 Loaded {len(episodes)} episode(s) for analysis\n")
+        return summary, rewards, actions
+    except Exception as e:
+        print(f"⚠️ Error loading {episode_dir}: {e}")
+        return None, None, None
 
-# === 2. AGGREGATE DATA ===
-all_actions = []
-all_rewards = []
-all_reward_components = []
 
-for ep in episodes:
-    for action_record in ep['actions']:
-        all_actions.append(action_record)
-    for reward_record in ep['rewards']:
-        all_rewards.append(reward_record)
-        all_reward_components.append(reward_record['components'])
+def analyze_reward_components(rewards):
+    """Analyze reward component statistics"""
+    components = {
+        'base_return': [],
+        'safety_penalty': [],
+        'idle_penalty': [],
+        'unrealized_profit': [],
+        'trade_profit': [],
+        'action_bonus': [],
+        'hyper_penalty': [],
+        'rapid_penalty': [],
+        'hard_limit_penalty': [],
+        'patience_reward': []   # NEW V15.3
+    }
 
-df_actions = pd.DataFrame(all_actions)
-df_rewards = pd.DataFrame(all_rewards)
-df_components = pd.DataFrame(all_reward_components)
+    total_rewards = []
 
-# === 3. REWARD DISTRIBUTION BY ACTION ===
-print("="*60)
-print("📊 REWARD DISTRIBUTION ANALYSIS")
-print("="*60)
+    for step_data in rewards:
+        total_rewards.append(step_data['total_reward'])
+        for key in components.keys():
+            if key in step_data['components']:
+                components[key].append(step_data['components'][key])
 
-action_map = {0: 'SELL', 1: 'HOLD', 2: 'BUY'}
-df_actions['action_name'] = df_actions['action_final'].map(action_map)
+    stats = {
+        'total_reward': {
+            'mean': np.mean(total_rewards),
+            'sum': np.sum(total_rewards),
+            'std': np.std(total_rewards)
+        }
+    }
 
-# Merge with rewards
-df_analysis = df_actions.merge(df_rewards, left_on='step', right_on='step', how='left')
+    for key, values in components.items():
+        if values:
+            stats[key] = {
+                'mean': np.mean(values),
+                'sum': np.sum(values),
+                'count_nonzero': np.count_nonzero(values)
+            }
 
-# Group by action
-action_stats = df_analysis.groupby('action_name')['total_reward'].agg([
-    'count', 'mean', 'std', 'median'
-]).round(6)
+    return stats
 
-# Add positive reward percentage
-pos_pct = df_analysis.groupby('action_name')['total_reward'].apply(
-    lambda x: (x > 0).sum() / len(x) * 100
-).round(1)
-action_stats['pos_%'] = pos_pct
 
-print("\nAction   | Count    | Mean       | Std        | Median     | Pos %")
-print("-" * 80)
-for action_name in ['SELL', 'HOLD', 'BUY']:
-    if action_name in action_stats.index:
-        row = action_stats.loc[action_name]
-        print(f"{action_name:8} | {int(row['count']):8} | {row['mean']:10.6f} | "
-              f"{row['std']:10.6f} | {row['median']:10.6f} | {row['pos_%']:5.1f}%")
+def plot_episode_analysis(summary, rewards, actions, output_dir):
+    """Create visualization plots"""
+    fig, axes = plt.subplots(3, 2, figsize=(15, 12))
+    fig.suptitle(f"V15.3 Episode {summary['episode']} Analysis", fontsize=16)
 
-# CRITICAL FINDING: HOLD vs Trading
-if 'HOLD' in action_stats.index:
-    hold_mean = action_stats.loc['HOLD', 'mean']
-    buy_mean = action_stats.loc['BUY', 'mean'] if 'BUY' in action_stats.index else -999
-    sell_mean = action_stats.loc['SELL', 'mean'] if 'SELL' in action_stats.index else -999
+    # 1. Total reward over time
+    total_rewards = [r['total_reward'] for r in rewards]
+    axes[0, 0].plot(total_rewards, linewidth=0.5, alpha=0.7)
+    axes[0, 0].set_title('Total Reward per Step')
+    axes[0, 0].set_xlabel('Step')
+    axes[0, 0].set_ylabel('Reward')
+    axes[0, 0].axhline(y=0, color='r', linestyle='--', alpha=0.3)
+    axes[0, 0].grid(True, alpha=0.3)
+
+    # 2. Cumulative reward
+    cumulative = np.cumsum(total_rewards)
+    axes[0, 1].plot(cumulative, linewidth=1)
+    axes[0, 1].set_title('Cumulative Reward')
+    axes[0, 1].set_xlabel('Step')
+    axes[0, 1].set_ylabel('Cumulative Reward')
+    axes[0, 1].grid(True, alpha=0.3)
+
+    # 3. Reward components breakdown
+    component_sums = {}
+    for key in ['base_return', 'idle_penalty', 'trade_profit', 'action_bonus',
+                'hyper_penalty', 'safety_penalty', 'rapid_penalty',
+                'hard_limit_penalty', 'patience_reward']:
+        values = [r['components'].get(key, 0) for r in rewards]
+        component_sums[key] = np.sum(values)
+
+    axes[1, 0].bar(range(len(component_sums)), list(component_sums.values()))
+    axes[1, 0].set_xticks(range(len(component_sums)))
+    axes[1, 0].set_xticklabels(
+        list(component_sums.keys()), rotation=45, ha='right')
+    axes[1, 0].set_title('Reward Component Totals')
+    axes[1, 0].axhline(y=0, color='r', linestyle='--', alpha=0.3)
+    axes[1, 0].grid(True, alpha=0.3)
+
+    # 4. Action distribution
+    action_counts = {'HOLD': 0, 'BUY': 0, 'SELL': 0}
+    blocked_count = 0
+
+    for action in actions:
+        action_counts[action['action_executed']] += 1
+        if action['blocked']:
+            blocked_count += 1
+
+    axes[1, 1].bar(action_counts.keys(), action_counts.values())
+    axes[1, 1].set_title(f'Action Distribution (Blocked: {blocked_count})')
+    axes[1, 1].set_ylabel('Count')
+    axes[1, 1].grid(True, alpha=0.3)
+
+    # 5. Trade gaps histogram
+    trade_gaps = [a['trade_gap']
+                  for a in actions if a['trade_gap'] is not None]
+    if trade_gaps:
+        axes[2, 0].hist(trade_gaps, bins=50, edgecolor='black', alpha=0.7)
+        axes[2, 0].axvline(x=summary.get('max_trades_limit', 0) / 10,
+                           color='r', linestyle='--', label='Target avg gap')
+        axes[2, 0].set_title('Trade Gap Distribution')
+        axes[2, 0].set_xlabel('Steps between trades')
+        axes[2, 0].set_ylabel('Frequency')
+        axes[2, 0].legend()
+        axes[2, 0].grid(True, alpha=0.3)
+
+    # 6. Key metrics summary
+    metrics_text = f"""
+    Episode: {summary['episode']}
+    Version: {summary.get('version', 'V15.3')}
     
-    if hold_mean > buy_mean and hold_mean > sell_mean:
-        print("\n🔍 CRITICAL FINDING:")
-        print("❌ HOLD has HIGHER mean reward than BUY/SELL!")
-        print("   → This explains why agent prefers to HOLD")
-        print(f"   → HOLD mean: {hold_mean:.6f}")
-        print(f"   → BUY mean:  {buy_mean:.6f}")
-        print(f"   → SELL mean: {sell_mean:.6f}")
-        print("\n💡 RECOMMENDATION:")
-        print("   1. Increase idle_penalty 5-10x")
-        print("   2. Increase opportunity_reward 5x")
-        print("   3. Increase action_bonus 3x")
+    Total Trades: {summary['total_trades']} / {summary.get('max_trades_limit', 'N/A')}
+    Final Return: {summary['return_pct']:.2f}%
+    
+    Safety Triggers:
+    - Hyper Trading: {summary['safety_triggers'].get('hyper_trading_penalized', 0)}
+    - Rapid Trading: {summary['safety_triggers'].get('rapid_trading_blocked', 0)}
+    - Hard Limit: {summary['safety_triggers'].get('hard_limit_reached', 0)}
+    - Total Blocks: {summary['safety_triggers'].get('total_blocks', 0)}
+    """
 
-# === 4. COMPONENT BREAKDOWN ===
-print("\n" + "="*60)
-print("🔬 REWARD COMPONENTS BREAKDOWN")
-print("="*60)
+    axes[2, 1].text(0.1, 0.5, metrics_text, fontsize=10,
+                    verticalalignment='center', family='monospace')
+    axes[2, 1].axis('off')
 
-component_means = df_components.mean().sort_values(ascending=False)
-component_totals = df_components.sum().sort_values(ascending=False)
+    plt.tight_layout()
+    plt.savefig(os.path.join(
+        output_dir, f"episode_{summary['episode']}_analysis.png"), dpi=150)
+    plt.close()
 
-print("\nComponent               | Mean        | Total Sum")
-print("-" * 60)
-for comp, mean_val in component_means.items():
-    total_val = component_totals[comp]
-    print(f"{comp:23} | {mean_val:11.6f} | {total_val:11.2f}")
 
-# Check imbalance
-base_return_mag = abs(component_means.get('base_return', 0))
-idle_penalty_mag = abs(component_means.get('idle_penalty', 0))
+def main():
+    parser = argparse.ArgumentParser(description='Analyze V15.3 Diagnostics')
+    parser.add_argument('--path', type=str, default='diagnostics_v15_3',
+                        help='Path to diagnostics directory')
+    args = parser.parse_args()
 
-if base_return_mag > 0 and idle_penalty_mag / base_return_mag < 0.1:
-    print("\n🔍 FINDING:")
-    print("❌ Idle penalty is TOO WEAK compared to base_return!")
-    print(f"   base_return magnitude: {base_return_mag:.6f}")
-    print(f"   idle_penalty magnitude: {idle_penalty_mag:.6f}")
-    print(f"   Ratio: {idle_penalty_mag / base_return_mag:.2%}")
-    print("\n💡 RECOMMENDATION:")
-    print("   Increase base_idle_penalty by 10-20x")
+    diag_path = args.path
 
-# === 5. ACTION FREQUENCY ===
-print("\n" + "="*60)
-print("📈 ACTION FREQUENCY ANALYSIS")
-print("="*60)
+    if not os.path.exists(diag_path):
+        print(f"❌ Diagnostics path not found: {diag_path}")
+        return
 
-action_counts = df_actions['action_name'].value_counts()
-total_actions = len(df_actions)
+    print(f"\n{'='*70}")
+    print(f"🔍 ANALYZING V15.3 DIAGNOSTICS")
+    print(f"{'='*70}\n")
+    print(f"📁 Source: {diag_path}/")
 
-print(f"\nTotal actions: {total_actions}")
-for action_name in ['SELL', 'HOLD', 'BUY']:
-    if action_name in action_counts.index:
-        count = action_counts[action_name]
-        pct = count / total_actions * 100
-        print(f"  {action_name} ({action_name[0].lower()}): {count} ({pct:.1f}%)")
+    # Find all episodes
+    episode_dirs = sorted(glob.glob(os.path.join(diag_path, 'episode_*')))
 
-if 'HOLD' in action_counts.index:
-    hold_pct = action_counts['HOLD'] / total_actions * 100
-    if hold_pct > 90:
-        print("\n🔍 CRITICAL FINDING:")
-        print(f"❌ HOLD dominates: {hold_pct:.1f}% of all actions!")
-        print("   → Agent has learned to HOLD as dominant strategy")
-        print("\n💡 RECOMMENDATION:")
-        print("   1. Increase exploration_final_eps from 0.05 to 0.15")
-        print("   2. Try PPO instead of DQN (better exploration)")
-        print("   3. Consider behavioral cloning warm-start")
+    if not episode_dirs:
+        print(f"⚠️ No episodes found in {diag_path}")
+        return
 
-# === 6. OPPORTUNITY ANALYSIS ===
-print("\n" + "="*60)
-print("🎯 OPPORTUNITY ANALYSIS")
-print("="*60)
+    print(f"📊 Found {len(episode_dirs)} episodes\n")
 
-# Aggregate states and actions
-buy_opportunities = 0
-buy_taken = 0
-buy_hold = 0
-buy_sell = 0
+    # Create output directory
+    output_dir = os.path.join(diag_path, 'analysis')
+    os.makedirs(output_dir, exist_ok=True)
 
-sell_opportunities = 0
-sell_taken = 0
-sell_hold = 0
-sell_buy = 0
+    # Analyze each episode
+    all_summaries = []
 
-for ep in episodes:
-    for i, state in enumerate(ep['states']):
-        flags = state['flags']
-        action = ep['actions'][i] if i < len(ep['actions']) else None
-        
-        if not action:
+    for ep_dir in episode_dirs:
+        summary, rewards, actions = load_episode_diagnostics(ep_dir)
+
+        if summary is None:
             continue
-        
-        action_exec = action['action_executed']
-        
-        # Buy opportunities
-        if flags.get('opp_buy', False):
-            buy_opportunities += 1
-            if action_exec == 'BUY':
-                buy_taken += 1
-            elif action_exec == 'HOLD':
-                buy_hold += 1
-            elif action_exec == 'SELL':
-                buy_sell += 1
-        
-        # Sell opportunities
-        if flags.get('opp_sell', False):
-            sell_opportunities += 1
-            if action_exec == 'SELL':
-                sell_taken += 1
-            elif action_exec == 'HOLD':
-                sell_hold += 1
-            elif action_exec == 'BUY':
-                sell_buy += 1
 
-if buy_opportunities > 0:
-    print(f"\nBuy Opportunities: {buy_opportunities}")
-    print(f"  Agent took BUY:  {buy_taken} ({buy_taken/buy_opportunities*100:.1f}%)")
-    print(f"  Agent took HOLD: {buy_hold} ({buy_hold/buy_opportunities*100:.1f}%)")
-    print(f"  Agent took SELL: {buy_sell} ({buy_sell/buy_opportunities*100:.1f}%)")
-    
-    if buy_taken / buy_opportunities < 0.3:
-        print("  ❌ Agent ignores most buy opportunities!")
+        print(f"Episode {summary['episode']}:")
+        print(
+            f"   Trades: {summary['total_trades']} / {summary.get('max_trades_limit', 'N/A')}")
+        print(f"   Return: {summary['return_pct']:+.2f}%")
+        print(
+            f"   Blocks: {summary['safety_triggers'].get('total_blocks', 0)}")
 
-if sell_opportunities > 0:
-    print(f"\nSell Opportunities: {sell_opportunities}")
-    print(f"  Agent took SELL: {sell_taken} ({sell_taken/sell_opportunities*100:.1f}%)")
-    print(f"  Agent took HOLD: {sell_hold} ({sell_hold/sell_opportunities*100:.1f}%)")
-    print(f"  Agent took BUY:  {sell_buy} ({sell_buy/sell_opportunities*100:.1f}%)")
-    
-    if sell_taken / sell_opportunities < 0.3:
-        print("  ❌ Agent ignores most sell opportunities!")
+        # Analyze rewards
+        reward_stats = analyze_reward_components(rewards)
+        print(f"   Avg Reward: {reward_stats['total_reward']['mean']:.6f}")
 
-if buy_opportunities > 0 and buy_taken / buy_opportunities < 0.2:
-    print("\n💡 RECOMMENDATION:")
-    print("   1. Increase opportunity_reward from 0.02 to 0.10")
-    print("   2. Add 'is_opportunity' as binary feature in state")
-    print("   3. Check prediction model quality")
+        # Generate plots
+        plot_episode_analysis(summary, rewards, actions, output_dir)
 
-# === 7. VISUALIZATIONS ===
-print("\n" + "="*60)
-print("📊 GENERATING VISUALIZATIONS")
-print("="*60)
+        all_summaries.append(summary)
+        print()
 
-# Plot 1: Reward distribution by action
-plt.figure(figsize=(10, 6))
-for action_name in ['SELL', 'HOLD', 'BUY']:
-    if action_name in df_analysis['action_name'].values:
-        data = df_analysis[df_analysis['action_name'] == action_name]['total_reward']
-        plt.hist(data, bins=50, alpha=0.5, label=action_name)
+    # Aggregate statistics
+    print(f"{'='*70}")
+    print(f"📈 AGGREGATE STATISTICS")
+    print(f"{'='*70}\n")
 
-plt.xlabel('Reward')
-plt.ylabel('Frequency')
-plt.title('Reward Distribution by Action')
-plt.legend()
-plt.grid(True, alpha=0.3)
-plt.tight_layout()
-plt.savefig(os.path.join(DIAGNOSTIC_DIR, 'reward_distribution.png'), dpi=150)
-print(f"  ✅ Saved: {DIAGNOSTIC_DIR}/reward_distribution.png")
+    total_trades = [s['total_trades'] for s in all_summaries]
+    returns = [s['return_pct'] for s in all_summaries]
 
-# Plot 2: Component contributions
-plt.figure(figsize=(12, 6))
-component_means_sorted = component_means.sort_values()
-colors = ['red' if x < 0 else 'green' for x in component_means_sorted.values]
-plt.barh(range(len(component_means_sorted)), component_means_sorted.values, color=colors)
-plt.yticks(range(len(component_means_sorted)), component_means_sorted.index)
-plt.xlabel('Mean Contribution to Reward')
-plt.title('Reward Component Contributions')
-plt.axvline(0, color='black', linewidth=0.8)
-plt.grid(True, alpha=0.3, axis='x')
-plt.tight_layout()
-plt.savefig(os.path.join(DIAGNOSTIC_DIR, 'reward_components.png'), dpi=150)
-print(f"  ✅ Saved: {DIAGNOSTIC_DIR}/reward_components.png")
+    print(f"Trade Count Statistics:")
+    print(f"   Mean: {np.mean(total_trades):.1f}")
+    print(f"   Median: {np.median(total_trades):.1f}")
+    print(f"   Min: {np.min(total_trades)}")
+    print(f"   Max: {np.max(total_trades)}")
 
-# Plot 3: HOLD frequency over time
-plt.figure(figsize=(12, 6))
-window = 100
-df_actions['is_hold'] = (df_actions['action_final'] == 1).astype(int)
-hold_pct_rolling = df_actions['is_hold'].rolling(window=window).mean() * 100
-plt.plot(hold_pct_rolling.index, hold_pct_rolling.values)
-plt.xlabel('Step')
-plt.ylabel('% HOLD Actions (100-step rolling avg)')
-plt.title('HOLD Action Frequency Over Time')
-plt.grid(True, alpha=0.3)
-plt.axhline(50, color='orange', linestyle='--', label='50% threshold')
-plt.axhline(90, color='red', linestyle='--', label='90% critical')
-plt.legend()
-plt.tight_layout()
-plt.savefig(os.path.join(DIAGNOSTIC_DIR, 'action_frequency_over_time.png'), dpi=150)
-print(f"  ✅ Saved: {DIAGNOSTIC_DIR}/action_frequency_over_time.png")
+    print(f"\nReturn Statistics:")
+    print(f"   Mean: {np.mean(returns):+.2f}%")
+    print(f"   Median: {np.median(returns):+.2f}%")
+    print(f"   Min: {np.min(returns):+.2f}%")
+    print(f"   Max: {np.max(returns):+.2f}%")
 
-plt.close('all')
+    # Compare with expected targets
+    print(f"\n{'='*70}")
+    print(f"🎯 V15.3 TARGET ASSESSMENT")
+    print(f"{'='*70}\n")
 
-# === 8. SUMMARY & RECOMMENDATIONS ===
-print("\n" + "="*60)
-print("💡 SUMMARY & RECOMMENDATIONS")
-print("="*60)
+    avg_trades = np.mean(total_trades)
+    avg_return = np.mean(returns)
 
-issues_found = []
-recommendations = []
+    print(f"Trade Count Control:")
+    if 50 <= avg_trades <= 150:
+        print(f"   ✅ GOOD: {avg_trades:.1f} trades (target: 50-150)")
+    else:
+        print(f"   ⚠️ OFF TARGET: {avg_trades:.1f} trades (target: 50-150)")
 
-# Check 1: HOLD reward dominance
-if 'HOLD' in action_stats.index:
-    hold_mean = action_stats.loc['HOLD', 'mean']
-    buy_mean = action_stats.loc['BUY', 'mean'] if 'BUY' in action_stats.index else -999
-    sell_mean = action_stats.loc['SELL', 'mean'] if 'SELL' in action_stats.index else -999
-    
-    if hold_mean > max(buy_mean, sell_mean):
-        issues_found.append("CRITICAL: HOLD reward > Trading rewards")
-        recommendations.append({
-            'severity': 'CRITICAL',
-            'issue': 'HOLD is more rewarding than trading',
-            'fix': 'Increase idle_penalty 5-10x AND opportunity_reward 5x'
-        })
+    print(f"\nReturn Performance:")
+    if avg_return > 0:
+        print(f"   ✅ POSITIVE: {avg_return:+.2f}% average return")
+    else:
+        print(f"   ❌ NEGATIVE: {avg_return:+.2f}% average return")
 
-# Check 2: HOLD dominance
-if 'HOLD' in action_counts.index:
-    hold_pct = action_counts['HOLD'] / total_actions * 100
-    if hold_pct > 90:
-        issues_found.append(f"HIGH: HOLD action {hold_pct:.1f}% frequency")
-        recommendations.append({
-            'severity': 'HIGH',
-            'issue': 'Agent stuck in HOLD-only policy',
-            'fix': 'Increase exploration_final_eps to 0.15 OR try PPO'
-        })
+    print(f"\n📁 Analysis plots saved to: {output_dir}/")
+    print(f"{'='*70}\n")
 
-# Check 3: Opportunity usage
-if buy_opportunities > 0:
-    buy_usage = buy_taken / buy_opportunities
-    if buy_usage < 0.2:
-        issues_found.append(f"MEDIUM: Only {buy_usage*100:.1f}% buy opportunities used")
-        recommendations.append({
-            'severity': 'MEDIUM',
-            'issue': 'Ignoring buy opportunities',
-            'fix': 'Increase opportunity_reward 5-10x'
-        })
 
-# Check 4: Component imbalance
-if base_return_mag > 0 and idle_penalty_mag / base_return_mag < 0.1:
-    issues_found.append("MEDIUM: Idle penalty too weak vs base_return")
-    recommendations.append({
-        'severity': 'MEDIUM',
-        'issue': 'Reward component imbalance',
-        'fix': 'Increase base_idle_penalty 10-20x'
-    })
-
-if len(issues_found) == 0:
-    print("\n✅ No critical issues found! Reward structure seems balanced.")
-    print("   If agent still passive, consider:")
-    print("   - Increasing training timesteps (try 2M)")
-    print("   - Trying different RL algorithm (PPO/SAC)")
-    print("   - Checking if market data is suitable (trending vs ranging)")
-else:
-    print(f"\n❌ Found {len(issues_found)} issue(s):\n")
-    for i, rec in enumerate(recommendations, 1):
-        print(f"{i}. [{rec['severity']}] {rec['issue']}")
-        print(f"   FIX: {rec['fix']}\n")
-
-print("\n" + "="*60)
-print("✅ DIAGNOSTIC ANALYSIS COMPLETE")
-print("="*60)
-print(f"\nNext steps:")
-print(f"  1. Review the 3 PNG charts in '{DIAGNOSTIC_DIR}/' folder")
-print(f"  2. Implement recommended fixes in trading_env.py")
-print(f"  3. Re-run: python train_dqn_diagnostic.py")
-print(f"  4. Re-analyze to verify improvements\n")
+if __name__ == "__main__":
+    main()
