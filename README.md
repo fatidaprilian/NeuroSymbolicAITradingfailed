@@ -16,8 +16,9 @@ NeuroSymbolicAITrading/
 │   │   ├── eth/             # ETH Equity Curve & Execution Charts
 │   │   └── xrp/             # XRP Equity Curve & Execution Charts
 │   ├── tables/              # Markdown & LaTeX Paper Tables
-│   │   ├── table4_forecasting_metrics.md  # MAE, RMSE, MAPE, R² Metrics
-│   │   ├── table5_summary_results.md      # Multi-Algo DRL Benchmark Table
+│   │   ├── table4_forecasting_metrics.md  # MAE, RMSE, MAPE, R² Forecasting Metrics
+│   │   ├── table5_summary_results.md      # Primary 5-Action DQN Benchmark Table & t-tests
+│   │   ├── table6_multi_algo_comparison.md# Comparative Multi-Algorithm Benchmark (DQN vs Double DQN vs HODL)
 │   │   └── table5_paper.tex               # LaTeX Table for Journal Submission
 │   └── paper_texts/         # Paper Draft Texts & Literature Mapping
 │       ├── quantitative_abstract.md       # Quantitative Abstract (Indonesian & English)
