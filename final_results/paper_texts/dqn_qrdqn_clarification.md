@@ -12,5 +12,5 @@
 
 ### 2. Hubungan DQN dan Ruang Aset 5-Aksi
 - Agen **5-Action DQN** menggunakan jaringan saraf *Multi-Layer Perceptron (MLP)* dengan fungsi aktivasi ReLU untuk mengestimasi nilai *Q-value* $Q(s, a)$ bagi 5 unit aksi diskrit:
-  $$\mathcal{A} = \{0: 	ext{SELL 100\%}, 1: 	ext{SELL 50\%}, 2: 	ext{HOLD}, 3: 	ext{BUY 50\%}, 4: 	ext{BUY 100\%}\}$$
+  $$\mathcal{A} = \{0: \text{SELL 100\%}, 1: \text{SELL 50\%}, 2: \text{HOLD}, 3: \text{BUY 50\%}, 4: \text{BUY 100\%}\}$$
 - Penggunaan ruang aksi 5-unit ini secara eksplisit memecahkan masalah *zero-trade policy stagnation* pada 3-aksi standar (*all-in BUY/SELL*) seperti yang didokumentasikan oleh Kaur et al. (2025).

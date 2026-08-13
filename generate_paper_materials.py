@@ -86,7 +86,7 @@ Recent literature consensus (Roshanpour et al., 2025; Khujamatov et al., 2026; J
 """
 
 
-QUANTITATIVE_ABSTRACT_MD = """# Quantitative Abstract Draft (Indonesian & English)
+QUANTITATIVE_ABSTRACT_MD = r"""# Quantitative Abstract Draft (Indonesian & English)
 
 ### Versi Bahasa Indonesia
 Pasar mata uang kripto yang sangat volatil dan *non-stationary* sering menyebabkan masalah *reward hacking* dan instabilitas kebijakan pada agen *Deep Q-Network* (DQN) 3-aksi standar akibat gesekan biaya transaksi. Penelitian ini mengajukan arsitektur *Neuro-Symbolic AI* hibrida berbasis *5-Action Discrete Space* $\{0: \text{SELL 100\%}, 1: \text{SELL 50\%}, 2: \text{HOLD}, 3: \text{BUY 50\%}, 4: \text{BUY 100\%}\}$ yang menggabungkan prediktor harga *Linear Regression-LSTM*, agen *Deep Q-Network* (DQN), dan *symbolic safety net* (ATR, RSI, SMA) sebagai mekanisme *veto* deterministik. Evaluasi eksperimental dilakukan pada data 1-jam aset Bitcoin (BTC), Ethereum (ETH), dan Ripple (XRP) periode 2021-2026 dengan biaya transaksi 0,1%. Hasil pengujian menunjukkan bahwa arsitektur *Neuro-Symbolic 5-Action DQN* berhasil mengatasi *policy stagnation* melalui 830 eksekusi transaksi pada BTC, 324 pada ETH, dan 614 pada XRP. Agen *Neuro-Symbolic* melampaui performa *baseline DQN* murni sebesar +7,94% pada XRP (-36,25% vs -44,19%) serta menekan *Maximum Drawdown* (MDD) pada ETH dari -40,90% menjadi -32,73%. Lapisan pengaman simbolik secara empiris memblokir 8 sinyal ekspansi berisiko pada XRP, serta memberikan log *auditability Explainable AI* (XAI) secara *real-time*.
@@ -96,7 +96,7 @@ Highly volatile and non-stationary cryptocurrency markets often induce reward ha
 """
 
 
-DQN_QRDQN_CLARIFICATION_MD = """# Methodological Clarification: DQN Architecture Consistency
+DQN_QRDQN_CLARIFICATION_MD = r"""# Methodological Clarification: DQN Architecture Consistency
 
 **Menjawab Catatan Reviewer 3 (Poin 3 - Inkonsistensi DQN vs QR-DQN):**
 
@@ -115,7 +115,7 @@ DQN_QRDQN_CLARIFICATION_MD = """# Methodological Clarification: DQN Architecture
 """
 
 
-HYPERPARAMETER_JUSTIFICATION_MD = """# Technical Justification & Analysis of Selected Hyperparameters
+HYPERPARAMETER_JUSTIFICATION_MD = r"""# Technical Justification & Analysis of Selected Hyperparameters
 
 **Menjawab Catatan Reviewer 2 & Reviewer 3 (Poin 3 - Justifikasi Hyperparameter Tabel 2 & 3):**
 

@@ -6,12 +6,12 @@
 
 | Hyperparameter | Nilai Terpilih | Justifikasi Teknis & Analisis Empiris |
 | :--- | :---: | :--- |
-| **Learning Rate ($lpha$)** | `0.0003` | Nilai *learning rate* standar yang terbukti stabil untuk jaringan MLP pada *time-series* kripto berderau tinggi. Nilai $lpha > 0.001$ menyebabkan osilasi gradien pada fungsi loss Bellman, sedangkan $lpha < 0.0001$ memperlambat konvergensi *policy*. |
-| **Discount Factor ($\gamma$)** | `0.99` | Menjamin agen memperhitungkan nilai ekuitas jangka panjang (*long-term portfolio value*) hingga horison efektif $\sim 100$ jam ke depan ($rac{1}{1 - 0.99}$). |
+| **Learning Rate ($\alpha$)** | `0.0003` | Nilai *learning rate* standar yang terbukti stabil untuk jaringan MLP pada *time-series* kripto berderau tinggi. Nilai $\alpha > 0.001$ menyebabkan osilasi gradien pada fungsi loss Bellman, sedangkan $\alpha < 0.0001$ memperlambat konvergensi *policy*. |
+| **Discount Factor ($\gamma$)** | `0.99` | Menjamin agen memperhitungkan nilai ekuitas jangka panjang (*long-term portfolio value*) hingga horison efektif $\sim 100$ jam ke depan ($\frac{1}{1 - 0.99}$). |
 | **Buffer Size** | `50,000` | Memori *experience replay buffer* yang optimal untuk menyimpan sampel transisi dari berbagai rezim pasar (*bullish*, *bearish*, *sideways*) tanpa menyebabkan *out-of-memory* pada RAM CPU. |
 | **Batch Size** | `64` | Menyeimbangkan kestabilan estimasi gradien stokastik dan efisiensi waktu komputasi pelatihan per *epoch*. |
 | **Target Update Interval** | `500` | Frekuensi pembaruan bobot *target network* untuk meminimalkan *overestimation bias* pada nilai Q-value Bellman. |
-| **Exploration ($\epsilon$-decay)** | `1.0` $ightarrow$ `0.05` | Skema $\epsilon$-greedy yang menjamin eksplorasi penuh pada awal pelatihan, kemudian meluruh secara bertahap hingga menyisa 5% eksplorasi acak untuk menjaga kestabilan *policy*. |
+| **Exploration ($\epsilon$-decay)** | `1.0` $\rightarrow$ `0.05` | Skema $\epsilon$-greedy yang menjamin eksplorasi penuh pada awal pelatihan, kemudian meluruh secara bertahap hingga menyisa 5% eksplorasi acak untuk menjaga kestabilan *policy*. |
 
 ---
 
