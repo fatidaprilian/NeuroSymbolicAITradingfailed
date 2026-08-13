@@ -53,15 +53,16 @@ def train_dqn(symbol: str = 'btc', scenario: str = 'adaptive', timesteps: int = 
     model_dqn = DQN(
         "MlpPolicy",
         env,
-        learning_rate=5e-5,
+        learning_rate=1e-4,
         buffer_size=100000,
-        learning_starts=1000,
+        learning_starts=500,
         batch_size=64,
         gamma=0.99,
         target_update_interval=500,
-        exploration_fraction=0.4,
-        exploration_final_eps=0.05,
-        policy_kwargs=dict(net_arch=[256, 256, 128]),
+        exploration_fraction=0.6,
+        exploration_final_eps=0.10,
+        policy_kwargs=dict(net_arch=[128, 128]),
+        device='cpu',  # Consistent with backtest inference; avoids GPU/CPU mismatch
         verbose=0,
     )
 

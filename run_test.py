@@ -57,14 +57,15 @@ def run_single_backtest(symbol: str = 'btc', scenario: str = 'adaptive', algo: s
     model = None
     if os.path.exists(model_path):
         try:
+            # Force CPU device to avoid GPU/CPU mismatch when model was trained on CUDA
             if algo_lower in ['dqn', 'ddqn']:
-                model = DQN.load(model_path)
+                model = DQN.load(model_path, device='cpu')
             elif algo_lower == 'ppo':
-                model = PPO.load(model_path)
+                model = PPO.load(model_path, device='cpu')
             elif algo_lower == 'sac':
-                model = SAC.load(model_path)
+                model = SAC.load(model_path, device='cpu')
             else:
-                model = DQN.load(model_path)
+                model = DQN.load(model_path, device='cpu')
         except Exception:
             model = None
 
