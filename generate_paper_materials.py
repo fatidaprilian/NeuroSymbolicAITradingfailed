@@ -56,7 +56,7 @@ Our proposed Neuro-Symbolic AI Cryptocurrency Trading Architecture introduces th
 """
 
 
-ETH_DRAWDOWN_DISCUSSION_MD = """# Regime-Switch & Risk Mitigation Analysis: 5-Action Deep Q-Network Results
+ETH_DRAWDOWN_DISCUSSION_MD = r"""# Regime-Switch & Risk Mitigation Analysis: 5-Action Deep Q-Network Results
 
 Recent literature consensus (Roshanpour et al., 2025; Khujamatov et al., 2026; Jiang et al., 2026) emphasizes that capital preservation (measured by maximum drawdown and risk-adjusted returns) is the primary benchmark during macro cryptocurrency bear markets.
 
@@ -69,7 +69,7 @@ Recent literature consensus (Roshanpour et al., 2025; Khujamatov et al., 2026; J
    - On **BTC**, the Neuro-Symbolic Double DQN agent achieved **-22.74% return** vs **-34.85% (Pure Baseline Double DQN)**, representing a **+12.11% outperformance** and reducing Max Drawdown from -37.55% down to -28.95%.
    - On **XRP**, the Neuro-Symbolic Double DQN agent achieved **-39.92% return** vs **-50.48% (Pure Baseline Double DQN)**, representing a **+10.56% outperformance** with 7 safety blocks triggered.
 4. **On-Policy (PPO/A2C) vs Off-Policy (DQN/Double DQN) Action Stagnation Analysis**:
-   - Empirical results in Table 6 show that On-Policy algorithms (**PPO and A2C**) experienced **Action Stagnation / Local Minimum Collapse**, consistently outputting `SELL_HALF` (Action 1) on initial zero-position holdings. Because selling with zero asset balance incurs no fee and zero penalty, On-Policy optimization converged to a passive cash-holding attractor (0 trades executed, 0.00% return). This structural difficulty of On-Policy algorithms in finite episodic trading budgets aligns with findings in policy-making RL literature (arXiv:2211.11043).
+   - Empirical results in Table 6 show that On-Policy algorithms (**PPO and A2C**) experienced **Action Stagnation / Local Minimum Collapse**, consistently outputting `SELL_HALF` (Action 1) on initial zero-position holdings. Because selling with zero asset balance incurs no fee and zero penalty, On-Policy optimization converged to a passive cash-holding attractor (0 trades executed, 0.00% return). This structural difficulty of On-Policy algorithms in finite episodic trading budgets aligns with findings in policy-making RL literature (arXiv:2312.06527).
    - In contrast, Off-Policy algorithms (**DQN and Double DQN**) utilize an **Experience Replay Buffer** (50,000 steps), breaking temporal correlation and sampling transitions across diverse portfolio state spaces. This enables active position exploration and auditable trading behavior across dynamic market regimes.
 5. **Statistical Significance & Risk Control Reframing (Addressing Paired t-Test Results)**:
    - Paired t-tests between Neuro-Symbolic and Pure Baseline daily returns yielded p-values of **0.7684 (BTC), 0.7748 (ETH), and 0.1665 (XRP)**. Because $p > 0.05$, the daily mean return variance between Neuro-Symbolic and Pure Baseline is not statistically significant at the 5% alpha level.
@@ -132,13 +132,15 @@ HYPERPARAMETER_JUSTIFICATION_MD = r"""# Technical Justification & Analysis of Se
 
 ---
 
-### 2. Ambang Batas Symbolic Safety Net (Veto Rules)
+### 2. Ambang Batas Kalibrasi Terkondisi Rezim (Asset-Dependent Safety Net Veto Rules)
 
-| Parameter Safety Net | Ambang Terpilih | Justifikasi Teknis & Analisis Risiko |
-| :--- | :---: | :--- |
-| **Normalized ATR (NATR)** | `> 12%` | Mengidentifikasi lonjakan volatilitas mikro ekstrim pada persentil ke-95 pergerakan harga harian. Pada XRP, ambang ini secara efektif memblokir 8 transaksi beli berisiko tinggi di puncak *spike*. |
-| **Relative Strength Index (RSI)** | `> 70` | Ambang batas teknis universal indikator *overbought*. Mencegah agen melakukan ekspansi posisi beli (*BUY_HALF* / *BUY_ALL*) saat harga koin berada di area jenuh beli. |
-| **Simple Moving Average (SMA)** | `Price < SMA_30` | Menandai rezim *downtrend* jangka pendek (30 jam). Eksekusi beli saat harga di bawah SMA30 diblokir oleh *Symbolic Safety Net* untuk mencegah kecenderungan *catching a falling knife*. |
+Sesuai kalibrasi pada `trading_env.py`, ambang batas *Symbolic Safety Net* dikalibrasi secara spesifik berdasarkan dinamika volatilitas dan struktur pasar per masing-masing aset:
+
+| Aset Kripto | RSI Overbought Threshold | Normalized ATR (NATR) Threshold | Simple Moving Average (SMA) | Justifikasi Kalibrasi Aset |
+| :---: | :---: | :---: | :---: | :--- |
+| **BTC** | `RSI > 80` | `NATR > 15.0%` | `Price < SMA_30` | Dikalibrasi untuk aset berpikologis *large-cap* dengan fenomena *momentum trend* kuat. |
+| **ETH** | `RSI > 78` | `NATR > 12.0%` | `Price < SMA_30` | Dikalibrasi untuk aset *mid-to-large cap* dengan sensitivitas volatilitas menengah. |
+| **XRP** | `RSI > 82` | `NATR > 18.0%` | `Price < SMA_30` | Dikalibrasi untuk aset *altcoin* berpola volatilitas mikro ekstrim (*high-frequency spikes*). |
 """
 
 

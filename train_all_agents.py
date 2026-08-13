@@ -1,5 +1,5 @@
 """
-Train and Benchmark DRL Trading Agents (DQN, Double DQN, QR-DQN, PPO, SAC).
+Train and Benchmark DRL Trading Agents (5-Action DQN, Double DQN, PPO, A2C).
 Evaluates RL algorithm stability under baseline and Neuro-Symbolic (veto-enabled) scenarios.
 """
 

@@ -15,10 +15,12 @@
 
 ---
 
-### 2. Ambang Batas Symbolic Safety Net (Veto Rules)
+### 2. Ambang Batas Kalibrasi Terkondisi Rezim (Asset-Dependent Safety Net Veto Rules)
 
-| Parameter Safety Net | Ambang Terpilih | Justifikasi Teknis & Analisis Risiko |
-| :--- | :---: | :--- |
-| **Normalized ATR (NATR)** | `> 12%` | Mengidentifikasi lonjakan volatilitas mikro ekstrim pada persentil ke-95 pergerakan harga harian. Pada XRP, ambang ini secara efektif memblokir 8 transaksi beli berisiko tinggi di puncak *spike*. |
-| **Relative Strength Index (RSI)** | `> 70` | Ambang batas teknis universal indikator *overbought*. Mencegah agen melakukan ekspansi posisi beli (*BUY_HALF* / *BUY_ALL*) saat harga koin berada di area jenuh beli. |
-| **Simple Moving Average (SMA)** | `Price < SMA_30` | Menandai rezim *downtrend* jangka pendek (30 jam). Eksekusi beli saat harga di bawah SMA30 diblokir oleh *Symbolic Safety Net* untuk mencegah kecenderungan *catching a falling knife*. |
+Sesuai kalibrasi pada `trading_env.py`, ambang batas *Symbolic Safety Net* dikalibrasi secara spesifik berdasarkan dinamika volatilitas dan struktur pasar per masing-masing aset:
+
+| Aset Kripto | RSI Overbought Threshold | Normalized ATR (NATR) Threshold | Simple Moving Average (SMA) | Justifikasi Kalibrasi Aset |
+| :---: | :---: | :---: | :---: | :--- |
+| **BTC** | `RSI > 80` | `NATR > 15.0%` | `Price < SMA_30` | Dikalibrasi untuk aset berpikologis *large-cap* dengan fenomena *momentum trend* kuat. |
+| **ETH** | `RSI > 78` | `NATR > 12.0%` | `Price < SMA_30` | Dikalibrasi untuk aset *mid-to-large cap* dengan sensitivitas volatilitas menengah. |
+| **XRP** | `RSI > 82` | `NATR > 18.0%` | `Price < SMA_30` | Dikalibrasi untuk aset *altcoin* berpola volatilitas mikro ekstrim (*high-frequency spikes*). |
