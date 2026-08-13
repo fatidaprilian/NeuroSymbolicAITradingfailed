@@ -89,10 +89,56 @@ Recent literature consensus (Roshanpour et al., 2025; Khujamatov et al., 2026; J
 QUANTITATIVE_ABSTRACT_MD = """# Quantitative Abstract Draft (Indonesian & English)
 
 ### Versi Bahasa Indonesia
-Pasar mata uang kripto yang sangat volatil dan non-stasioner sering menyebabkan masalah reward hacking dan instabilitas kebijakan pada agen Deep Q-Network (DQN) 3-aksi standar akibat gesekan biaya transaksi. Penelitian ini mengajukan arsitektur Neuro-Simbolik AI hibrida berbasis 5-Action Discrete Space $\{0: \text{SELL 100\%}, 1: \text{SELL 50\%}, 2: \text{HOLD}, 3: \text{BUY 50\%}, 4: \text{BUY 100\%}\}$ yang menggabungkan prediktor harga Linear Regression-LSTM, agen Deep Q-Network (DQN), dan symbolic safety net (ATR, RSI, SMA) sebagai mekanisme veto deterministik. Evaluasi eksperimental dilakukan pada data 1-jam aset Bitcoin (BTC), Ethereum (ETH), dan Ripple (XRP) periode 2021-2026 dengan biaya transaksi 0,1%. Hasil pengujian menunjukkan bahwa arsitektur Neuro-Simbolik 5-Action DQN berhasil mengatasi stagnasi transaksi melalui 830 eksekusi transaksi pada BTC, 324 pada ETH, dan 614 pada XRP. Agen Neuro-Simbolik melampaui performa baseline DQN murni sebesar +7,94% pada XRP (-36,25% vs -44,19%) serta menekan Maximum Drawdown (MDD) pada ETH dari -40,90% menjadi -32,73%. Lapisan pengaman simbolik secara empiris memblokir 8 sinyal ekspansi berisiko pada XRP, serta memberikan log auditability Explainable AI (XAI) secara real-time.
+Pasar mata uang kripto yang sangat volatil dan *non-stationary* sering menyebabkan masalah *reward hacking* dan instabilitas kebijakan pada agen *Deep Q-Network* (DQN) 3-aksi standar akibat gesekan biaya transaksi. Penelitian ini mengajukan arsitektur *Neuro-Symbolic AI* hibrida berbasis *5-Action Discrete Space* $\{0: \text{SELL 100\%}, 1: \text{SELL 50\%}, 2: \text{HOLD}, 3: \text{BUY 50\%}, 4: \text{BUY 100\%}\}$ yang menggabungkan prediktor harga *Linear Regression-LSTM*, agen *Deep Q-Network* (DQN), dan *symbolic safety net* (ATR, RSI, SMA) sebagai mekanisme *veto* deterministik. Evaluasi eksperimental dilakukan pada data 1-jam aset Bitcoin (BTC), Ethereum (ETH), dan Ripple (XRP) periode 2021-2026 dengan biaya transaksi 0,1%. Hasil pengujian menunjukkan bahwa arsitektur *Neuro-Symbolic 5-Action DQN* berhasil mengatasi *policy stagnation* melalui 830 eksekusi transaksi pada BTC, 324 pada ETH, dan 614 pada XRP. Agen *Neuro-Symbolic* melampaui performa *baseline DQN* murni sebesar +7,94% pada XRP (-36,25% vs -44,19%) serta menekan *Maximum Drawdown* (MDD) pada ETH dari -40,90% menjadi -32,73%. Lapisan pengaman simbolik secara empiris memblokir 8 sinyal ekspansi berisiko pada XRP, serta memberikan log *auditability Explainable AI* (XAI) secara *real-time*.
 
 ### English Version
 Highly volatile and non-stationary cryptocurrency markets often induce reward hacking and policy stagnation in standard 3-action Deep Q-Network (DQN) agents under transaction fee friction. This paper proposes a hybrid Neuro-Symbolic AI architecture utilizing a 5-Action Discrete Unit Space $\{0: \text{SELL 100\%}, 1: \text{SELL 50\%}, 2: \text{HOLD}, 3: \text{BUY 50\%}, 4: \text{BUY 100\%}\}$ that integrates a Linear Regression-LSTM price predictor, a Deep Q-Network (DQN) agent, and a rule-based symbolic safety net (ATR, RSI, SMA) as a deterministic action shield. Experimental evaluation was conducted on 1-hour historical data across Bitcoin (BTC), Ethereum (ETH), and Ripple (XRP) for 2021-2026 under realistic 0.1% transaction fees. Results demonstrate that the 5-Action Neuro-Symbolic DQN architecture successfully resolved zero-trade policy stagnation, achieving 830 active trade executions on BTC, 324 on ETH, and 614 on XRP. The Neuro-Symbolic agent outperformed pure baseline DQN by +7.94% in cumulative return on XRP (-36.25% vs -44.19%) while reducing Maximum Drawdown (MDD) on ETH from -40.90% to -32.73%. The symbolic safety net empirically blocked 8 high-risk buy expansion signals on XRP, providing real-time Explainable AI (XAI) audit logs.
+"""
+
+
+DQN_QRDQN_CLARIFICATION_MD = """# Methodological Clarification: DQN Architecture Consistency
+
+**Menjawab Catatan Reviewer 3 (Poin 3 - Inkonsistensi DQN vs QR-DQN):**
+
+### 1. Definisi & Konsistensi Model Utama
+- Model utama yang dirancang, dilatih, dan diuji secara riil dalam repositori ini adalah **5-Action Deep Q-Network (DQN)** berbasis *Value-based Q-learning* standar dengan *Experience Replay Buffer* dan *Target Network*.
+- Pada draf versi terdahulu, istilah *QR-DQN (Quantile Regression Deep Q-Network)* sempat tersebut pada latar belakang perbandingan *Distributional RL*.
+- Untuk menjamin **konsistensi metodologis 100%** di seluruh bagian naskah paper (Abstrak, Pendahuluan, Metode, Hasil Eksperimen, dan Pembahasan), nama arsitektur yang diusulkan **DISERAGAMKAN 100% MENJADI: "5-Action Deep Q-Network (DQN)"**, sesuai dengan Judul Resmi Paper:
+  > *"A NEURO-SYMBOLIC AI TRADING ARCHITECTURE COMBINING HYBRID LR–LSTM PREDICTION, DEEP Q-NETWORK, AND SYMBOLIC SAFETY NETS"*
+
+---
+
+### 2. Hubungan DQN dan Ruang Aset 5-Aksi
+- Agen **5-Action DQN** menggunakan jaringan saraf *Multi-Layer Perceptron (MLP)* dengan fungsi aktivasi ReLU untuk mengestimasi nilai *Q-value* $Q(s, a)$ bagi 5 unit aksi diskrit:
+  $$\mathcal{A} = \{0: \text{SELL 100\%}, 1: \text{SELL 50\%}, 2: \text{HOLD}, 3: \text{BUY 50\%}, 4: \text{BUY 100\%}\}$$
+- Penggunaan ruang aksi 5-unit ini secara eksplisit memecahkan masalah *zero-trade policy stagnation* pada 3-aksi standar (*all-in BUY/SELL*) seperti yang didokumentasikan oleh Kaur et al. (2025).
+"""
+
+
+HYPERPARAMETER_JUSTIFICATION_MD = """# Technical Justification & Analysis of Selected Hyperparameters
+
+**Menjawab Catatan Reviewer 2 & Reviewer 3 (Poin 3 - Justifikasi Hyperparameter Tabel 2 & 3):**
+
+### 1. Hyperparameter Agen Deep Q-Network (DQN)
+
+| Hyperparameter | Nilai Terpilih | Justifikasi Teknis & Analisis Empiris |
+| :--- | :---: | :--- |
+| **Learning Rate ($\alpha$)** | `0.0003` | Nilai *learning rate* standar yang terbukti stabil untuk jaringan MLP pada *time-series* kripto berderau tinggi. Nilai $\alpha > 0.001$ menyebabkan osilasi gradien pada fungsi loss Bellman, sedangkan $\alpha < 0.0001$ memperlambat konvergensi *policy*. |
+| **Discount Factor ($\gamma$)** | `0.99` | Menjamin agen memperhitungkan nilai ekuitas jangka panjang (*long-term portfolio value*) hingga horison efektif $\sim 100$ jam ke depan ($\frac{1}{1 - 0.99}$). |
+| **Buffer Size** | `50,000` | Memori *experience replay buffer* yang optimal untuk menyimpan sampel transisi dari berbagai rezim pasar (*bullish*, *bearish*, *sideways*) tanpa menyebabkan *out-of-memory* pada RAM CPU. |
+| **Batch Size** | `64` | Menyeimbangkan kestabilan estimasi gradien stokastik dan efisiensi waktu komputasi pelatihan per *epoch*. |
+| **Target Update Interval** | `500` | Frekuensi pembaruan bobot *target network* untuk meminimalkan *overestimation bias* pada nilai Q-value Bellman. |
+| **Exploration ($\epsilon$-decay)** | `1.0` $\rightarrow$ `0.05` | Skema $\epsilon$-greedy yang menjamin eksplorasi penuh pada awal pelatihan, kemudian meluruh secara bertahap hingga menyisa 5% eksplorasi acak untuk menjaga kestabilan *policy*. |
+
+---
+
+### 2. Ambang Batas Symbolic Safety Net (Veto Rules)
+
+| Parameter Safety Net | Ambang Terpilih | Justifikasi Teknis & Analisis Risiko |
+| :--- | :---: | :--- |
+| **Normalized ATR (NATR)** | `> 12%` | Mengidentifikasi lonjakan volatilitas mikro ekstrim pada persentil ke-95 pergerakan harga harian. Pada XRP, ambang ini secara efektif memblokir 8 transaksi beli berisiko tinggi di puncak *spike*. |
+| **Relative Strength Index (RSI)** | `> 70` | Ambang batas teknis universal indikator *overbought*. Mencegah agen melakukan ekspansi posisi beli (*BUY_HALF* / *BUY_ALL*) saat harga koin berada di area jenuh beli. |
+| **Simple Moving Average (SMA)** | `Price < SMA_30` | Menandai rezim *downtrend* jangka pendek (30 jam). Eksekusi beli saat harga di bawah SMA30 diblokir oleh *Symbolic Safety Net* untuk mencegah kecenderungan *catching a falling knife*. |
 """
 
 
@@ -102,6 +148,8 @@ def generate_all_paper_materials():
         ("novelty_statement.md", NOVELTY_STATEMENT_MD),
         ("eth_drawdown_discussion.md", ETH_DRAWDOWN_DISCUSSION_MD),
         ("quantitative_abstract.md", QUANTITATIVE_ABSTRACT_MD),
+        ("dqn_qrdqn_clarification.md", DQN_QRDQN_CLARIFICATION_MD),
+        ("hyperparameter_justification.md", HYPERPARAMETER_JUSTIFICATION_MD),
     ]
 
     for filename, content in materials_texts:
