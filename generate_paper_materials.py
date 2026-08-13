@@ -46,7 +46,7 @@ RELATED_WORK_TABLE_MD = """# Table 1: Comparative Mapping of Literature in Deep 
 """
 
 
-NOVELTY_STATEMENT_MD = """# Explicit Novelty Statement (3-Pillar Formulation)
+NOVELTY_STATEMENT_MD = r"""# Explicit Novelty Statement (3-Pillar Formulation)
 
 Our proposed Neuro-Symbolic AI Cryptocurrency Trading Architecture introduces three distinct novel technical contributions:
 
