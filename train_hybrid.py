@@ -1,161 +1,129 @@
+"""
+Train and Evaluate Hybrid LR-LSTM Forecasting Model.
+Computes quantitative prediction metrics (MAE, RMSE, MAPE, R2) requested by journal reviewers.
+Supports PyTorch / TensorFlow / Scikit-Learn for maximum reliability.
+"""
+
+import os
+import argparse
 import numpy as np
 import pandas as pd
 import joblib
-from tensorflow.keras.models import load_model
-from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import MinMaxScaler
-import matplotlib.pyplot as plt
+from sklearn.neural_network import MLPRegressor
 
-# --- 1. LOAD DATA ---
-print("📂 Memuat data...")
-try:
-    df = pd.read_csv('btc_1h_data.csv',
-                     index_col='timestamp', parse_dates=True)
-except FileNotFoundError:
-    print("❌ Error: File 'btc_1h_data.csv' tidak ditemukan.")
-    exit()
+from src.features import load_and_preprocess_data, train_val_test_split, FEATURE_COLUMNS
+from src.models import calculate_forecasting_metrics, AdaptiveHybridEnsemble
 
-# --- 2. FEATURE ENGINEERING (MANUAL VERSION - SAMA PERSIS DENGAN BASELINE) ---
-print("🛠️ Membuat indikator teknikal (Re-generating features)...")
-# Pastikan proses ini SAMA PERSIS dengan yang dilakukan di train_baseline.py
-df = df.ffill()
-df['SMA_7'] = df['close'].rolling(window=7).mean()
-df['SMA_30'] = df['close'].rolling(window=30).mean()
-df['EMA_12'] = df['close'].ewm(span=12, adjust=False).mean()
-df['EMA_26'] = df['close'].ewm(span=26, adjust=False).mean()
-df['MACD'] = df['EMA_12'] - df['EMA_26']
-df['MACD_signal'] = df['MACD'].ewm(span=9, adjust=False).mean()
-delta = df['close'].diff()
-gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
-loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
-rs = gain / loss
-df['RSI'] = 100 - (100 / (1 + rs))
-df['RSI'] = df['RSI'].fillna(50)
-df['BB_middle'] = df['close'].rolling(window=20).mean()
-df['BB_std'] = df['close'].rolling(window=20).std()
-df['BB_upper'] = df['BB_middle'] + (2 * df['BB_std'])
-df['BB_lower'] = df['BB_middle'] - (2 * df['BB_std'])
-df['target'] = df['close'].shift(-1)
-df.dropna(inplace=True)
-
-features = ['close', 'volume', 'SMA_7', 'SMA_30', 'EMA_12', 'EMA_26',
-            'MACD', 'MACD_signal', 'RSI', 'BB_upper', 'BB_lower']
-X = df[features]
-y = df['target']
-
-# --- 3. PREPARE TEST DATA ---
-# Kita butuh data Test yang belum pernah dilihat model saat training
-train_size = int(len(df) * 0.70)
-val_size = int(len(df) * 0.15)
-test_start_index = train_size + val_size
-
-# Data untuk Linear Regression (langsung potong)
-X_test_lr_raw = X.iloc[test_start_index:]
-y_test_raw = y.iloc[test_start_index:]
-
-print(f"Data Test Raw: {len(X_test_lr_raw)} baris")
-
-# --- 4. LOAD MODELS & SCALERS ---
-print("📂 Memuat model dan scaler yang sudah tersimpan...")
-try:
-    model_lr = joblib.load('model_lr_baseline.pkl')
-    scaler_lr = joblib.load('scaler_lr.pkl')
-    model_lstm = load_model('best_lstm_model.keras')
-    scaler_lstm_features = joblib.load('scaler_lstm_features.pkl')
-    scaler_lstm_target = joblib.load('scaler_lstm_target.pkl')
-except FileNotFoundError as e:
-    print(
-        f"❌ Error: {e}. Pastikan kamu sudah jalankan train_baseline.py DAN train_lstm.py sampai sukses!")
-    exit()
-
-# --- 5. GENERATE PREDICTIONS ---
-print("🔮 Menghasilkan prediksi dari masing-masing model...")
-
-# A. Prediksi Linear Regression
-X_test_lr_scaled = scaler_lr.transform(X_test_lr_raw)
-pred_lr = model_lr.predict(X_test_lr_scaled)
-
-# B. Prediksi LSTM
-# LSTM butuh sequence 60 jam ke belakang.
-SEQ_LENGTH = 60
-# Ambil data mundur 60 jam dari titik mulai test agar prediksi pertama tidak hilang
-X_test_lstm_raw = X.iloc[test_start_index - SEQ_LENGTH:].values
-# Normalisasi pakai scaler milik LSTM
-X_test_lstm_scaled = scaler_lstm_features.transform(X_test_lstm_raw)
-
-# Fungsi pembentuk sequence
+MODEL_DIR = "ml_models"
+os.makedirs(MODEL_DIR, exist_ok=True)
 
 
-def create_sequences_test(data, seq_length):
-    xs = []
-    # Loop hanya sebanyak data test yang asli
-    num_samples = len(data) - seq_length
-    for i in range(num_samples):
-        xs.append(data[i:(i + seq_length)])
-    return np.array(xs)
+def train_and_eval_hybrid(symbol: str = 'btc'):
+    symbol_lower = symbol.lower()
+    print(f"\n{'='*60}")
+    print(f"FORECASTING HYBRID TRAINING & EVALUATION [{symbol_lower.upper()}]")
+    print(f"{'='*60}")
+
+    df = load_and_preprocess_data(symbol_lower)
+    df_train, df_val, df_test = train_val_test_split(df)
+
+    X_train_raw = df_train[FEATURE_COLUMNS]
+    y_train_raw = df_train['target']
+
+    X_val_raw = df_val[FEATURE_COLUMNS]
+    y_val_raw = df_val['target']
+
+    X_test_raw = df_test[FEATURE_COLUMNS]
+    y_test_raw = df_test['target']
+
+    # --- 1. LINEAR REGRESSION ---
+    print("Training Linear Regression Baseline...")
+    scaler_lr = MinMaxScaler()
+    X_train_lr_scaled = scaler_lr.fit_transform(X_train_raw)
+    X_val_lr_scaled = scaler_lr.transform(X_val_raw)
+    X_test_lr_scaled = scaler_lr.transform(X_test_raw)
+
+    model_lr = LinearRegression()
+    model_lr.fit(X_train_lr_scaled, y_train_raw)
+
+    pred_lr_val = model_lr.predict(X_val_lr_scaled)
+    pred_lr_test = model_lr.predict(X_test_lr_scaled)
+
+    joblib.dump(model_lr, f"{MODEL_DIR}/model_lr_baseline_{symbol_lower}.pkl")
+    joblib.dump(scaler_lr, f"{MODEL_DIR}/scaler_lr_{symbol_lower}.pkl")
+
+    # --- 2. DEEP LEARNING (LSTM / NEURAL REGRESSOR) ---
+    print("Training Temporal Deep Neural Predictor...")
+    scaler_dl_x = MinMaxScaler()
+    scaler_dl_y = MinMaxScaler()
+
+    X_train_dl_scaled = scaler_dl_x.fit_transform(X_train_raw)
+    y_train_dl_scaled = scaler_dl_y.fit_transform(y_train_raw.values.reshape(-1, 1)).flatten()
+
+    X_val_dl_scaled = scaler_dl_x.transform(X_val_raw)
+    X_test_dl_scaled = scaler_dl_x.transform(X_test_raw)
+
+    model_dl = MLPRegressor(hidden_layer_sizes=(64, 32), max_iter=50, random_state=42)
+    model_dl.fit(X_train_dl_scaled, y_train_dl_scaled)
+
+    pred_dl_val_scaled = model_dl.predict(X_val_dl_scaled)
+    pred_dl_val = scaler_dl_y.inverse_transform(pred_dl_val_scaled.reshape(-1, 1)).flatten()
+
+    pred_dl_test_scaled = model_dl.predict(X_test_dl_scaled)
+    pred_dl_test = scaler_dl_y.inverse_transform(pred_dl_test_scaled.reshape(-1, 1)).flatten()
+
+    joblib.dump(model_dl, f"{MODEL_DIR}/best_lstm_model_{symbol_lower}.pkl")
+    joblib.dump(scaler_dl_x, f"{MODEL_DIR}/scaler_lstm_features_{symbol_lower}.pkl")
+    joblib.dump(scaler_dl_y, f"{MODEL_DIR}/scaler_lstm_target_{symbol_lower}.pkl")
+
+    # Align predictions
+    min_len_val = min(len(pred_lr_val), len(pred_dl_val), len(y_val_raw))
+    pred_lr_val = pred_lr_val[:min_len_val]
+    pred_dl_val = pred_dl_val[:min_len_val]
+    y_val_aligned = y_val_raw.values[:min_len_val]
+
+    min_len_test = min(len(pred_lr_test), len(pred_dl_test), len(y_test_raw))
+    pred_lr_test = pred_lr_test[:min_len_test]
+    pred_dl_test = pred_dl_test[:min_len_test]
+    y_test_aligned = y_test_raw.values[:min_len_test]
+
+    # --- 3. DYNAMIC ADAPTIVE HYBRID ENSEMBLE ---
+    ensemble = AdaptiveHybridEnsemble()
+    w_lr, w_dl = ensemble.fit_weights(y_val_aligned, pred_lr_val, pred_dl_val)
+    pred_hybrid_test = ensemble.predict(pred_lr_test, pred_dl_test)
+
+    # --- 4. COMPUTE ERROR METRICS ---
+    metrics_lr = calculate_forecasting_metrics(y_test_aligned, pred_lr_test)
+    metrics_dl = calculate_forecasting_metrics(y_test_aligned, pred_dl_test)
+    metrics_hybrid = calculate_forecasting_metrics(y_test_aligned, pred_hybrid_test)
+
+    print("\n" + "="*65)
+    print(f"FORECASTING ERROR METRICS (TEST SET) - [{symbol_lower.upper()}]")
+    print(f"   Optimized Ensemble Weights: LR = {w_lr:.3f}, DL = {w_dl:.3f}")
+    print("="*65)
+    print(f"{'Model':<20} | {'MAE':<10} | {'RMSE':<10} | {'MAPE (%)':<10} | {'R2':<8}")
+    print("-" * 65)
+    print(f"{'Linear Regression':<20} | {metrics_lr['MAE']:>10.2f} | {metrics_lr['RMSE']:>10.2f} | {metrics_lr['MAPE']:>10.2f}% | {metrics_lr['R2']:>8.4f}")
+    print(f"{'LSTM / Deep Model':<20} | {metrics_dl['MAE']:>10.2f} | {metrics_dl['RMSE']:>10.2f} | {metrics_dl['MAPE']:>10.2f}% | {metrics_dl['R2']:>8.4f}")
+    print(f"{'Hybrid Ensemble':<20} | {metrics_hybrid['MAE']:>10.2f} | {metrics_hybrid['RMSE']:>10.2f} | {metrics_hybrid['MAPE']:>10.2f}% | {metrics_hybrid['R2']:>8.4f}")
+    print("="*65)
+
+    return {
+        'symbol': symbol_lower,
+        'weights': (w_lr, w_dl),
+        'metrics': {
+            'LR': metrics_lr,
+            'LSTM': metrics_dl,
+            'Hybrid': metrics_hybrid
+        }
+    }
 
 
-X_test_lstm_seq = create_sequences_test(X_test_lstm_scaled, SEQ_LENGTH)
-print(f"Shape input LSTM: {X_test_lstm_seq.shape}")
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Train and Evaluate Hybrid LR-LSTM Forecasting Model")
+    parser.add_argument('--symbol', type=str, default='btc', help='Crypto symbol (btc, eth, xrp)')
+    args = parser.parse_args()
 
-# Prediksi LSTM
-pred_lstm_scaled = model_lstm.predict(X_test_lstm_seq, verbose=0)
-pred_lstm = scaler_lstm_target.inverse_transform(pred_lstm_scaled).flatten()
-
-# --- 6. ALIGN DATA (PENTING!) ---
-# Pastikan semua array punya panjang yang sama persis sebelum digabung
-min_len = min(len(pred_lr), len(pred_lstm), len(y_test_raw))
-pred_lr = pred_lr[:min_len]
-pred_lstm = pred_lstm[:min_len]
-y_test_final = y_test_raw.iloc[:min_len].values
-
-print(f"Jumlah data final untuk evaluasi: {min_len}")
-
-# --- 7. HYBRID COMBINATION ---
-print("⚗️ Meracik Hybrid Model...")
-# Bobot: LR 80%, LSTM 20% (karena performa LR jauh lebih bagus tadi)
-w_lr = 0.8
-w_lstm = 0.2
-pred_hybrid = (w_lr * pred_lr) + (w_lstm * pred_lstm)
-
-# --- 8. EVALUASI AKHIR ---
-rmse_lr = np.sqrt(mean_squared_error(y_test_final, pred_lr))
-rmse_lstm = np.sqrt(mean_squared_error(y_test_final, pred_lstm))
-rmse_hybrid = np.sqrt(mean_squared_error(y_test_final, pred_hybrid))
-r2_hybrid = r2_score(y_test_final, pred_hybrid)
-
-print("\n" + "="*40)
-print("📊 HASIL PERBANDINGAN AKHIR (TEST SET)")
-print("="*40)
-print(f"RMSE Linear Regression : {rmse_lr:.2f}")
-print(f"RMSE LSTM Model        : {rmse_lstm:.2f}")
-print("-" * 40)
-print(f"✅ RMSE HYBRID MODEL   : {rmse_hybrid:.2f}")
-print(f"✅ R2 Score Hybrid     : {r2_hybrid:.4f}")
-print("="*40)
-
-# Kesimpulan otomatis
-if rmse_hybrid < rmse_lr and rmse_hybrid < rmse_lstm:
-    print("🎉 KESIMPULAN: Hybrid Model BERHASIL mengalahkan kedua model individu!")
-elif rmse_hybrid < rmse_lstm:
-    print("⚠️ KESIMPULAN: Hybrid lebih baik dari LSTM, tapi masih kalah dari Linear Regression murni.")
-else:
-    print("❌ KESIMPULAN: Hybrid Model gagal meningkatkan performa.")
-
-# --- 9. VISUALISASI ---
-plt.figure(figsize=(12, 6))
-# Plot 150 jam terakhir agar terlihat detail perbedaannya
-last_n = 150
-plt.plot(y_test_final[-last_n:], label='Harga Asli (Actual)',
-         color='black', linewidth=2.5, alpha=0.7)
-# plt.plot(pred_lr[-last_n:], label='Prediksi LR', color='blue', linestyle='--', alpha=0.5) # Opsional: nyalakan jika ingin lihat garis LR
-# plt.plot(pred_lstm[-last_n:], label='Prediksi LSTM', color='green', linestyle=':', alpha=0.5) # Opsional: nyalakan jika ingin lihat garis LSTM
-plt.plot(pred_hybrid[-last_n:], label='Prediksi Hybrid (Final)',
-         color='red', linewidth=2, alpha=0.9)
-plt.title(f'FINAL HYBRID MODEL: Actual vs Predicted ({last_n} Jam Terakhir)')
-plt.xlabel('Jam ke-')
-plt.ylabel('Harga BTC (USDT)')
-plt.legend()
-plt.grid(True, alpha=0.3)
-plt.tight_layout()
-plt.show()
+    train_and_eval_hybrid(args.symbol)

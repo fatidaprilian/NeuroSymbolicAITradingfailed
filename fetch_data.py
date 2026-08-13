@@ -1,69 +1,117 @@
-import pandas as pd
-from binance.client import Client
-import sqlite3
-import time
-import argparse # Library baru untuk menerima argumen
+"""
+Binance Public REST API Data Fetcher for BTC, ETH, XRP.
+Fetches real 1-hour OHLCV historical price data directly from Binance public API without API keys.
+"""
+
 import os
+import sys
+import time
+import csv
+import json
+import argparse
+from datetime import datetime, timezone
 
-# --- Setup Argumen ---
-parser = argparse.ArgumentParser(description='Fetch historical crypto data from Binance.')
-parser.add_argument('--symbol', 
-                    type=str, 
-                    default='BTCUSDT', 
-                    help='Symbol to fetch (e.g., ETHUSDT, XRPUSDT)')
-args = parser.parse_args()
-
-# --- Main Logic ---
-symbol = args.symbol.upper() # Pastikan huruf besar
-symbol_lower = symbol.lower().replace('usdt', '') # Untuk nama file (btc, eth, xrp)
-
-# Inisialisasi client
-client = Client()
-
-print(f"🚀 Mulai mengambil data {symbol} (Timeframe 1h, 3 tahun terakhir)...")
-print("Mohon bersabar...")
-
-start_time = time.time()
 try:
-    klines = client.get_historical_klines(symbol, Client.KLINE_INTERVAL_1HOUR, "3 years ago UTC")
-    end_time = time.time()
-except Exception as e:
-    print(f"❌ GAGAL mengambil data {symbol}. Error: {e}")
-    print("Pastikan simbolnya valid di Binance (e.g., XRPUSDT bukan XRP).")
-    exit()
+    import requests
+    HAS_REQUESTS = True
+except ImportError:
+    import urllib.request
+    HAS_REQUESTS = False
 
-print(f"✅ Data {symbol} berhasil ditarik dalam {end_time - start_time:.2f} detik!")
 
-# Convert ke pandas DataFrame
-df = pd.DataFrame(klines, columns=[
-    'open_time', 'open', 'high', 'low', 'close', 'volume',
-    'close_time', 'quote_asset_volume', 'number_of_trades',
-    'taker_buy_base_asset_volume', 'taker_buy_quote_asset_volume', 'ignore'
-])
+def fetch_binance_klines_batch(symbol: str, interval: str = "1h", startTime: int = None, limit: int = 1000):
+    url = f"https://api.binance.com/api/v3/klines?symbol={symbol}&interval={interval}&limit={limit}"
+    if startTime is not None:
+        url += f"&startTime={startTime}"
 
-df = df[['open_time', 'open', 'high', 'low', 'close', 'volume']]
-df['timestamp'] = pd.to_datetime(df['open_time'], unit='ms')
-for col in ['open', 'high', 'low', 'close', 'volume']:
-    df[col] = df[col].astype(float)
-df.set_index('timestamp', inplace=True)
-df.drop(columns=['open_time'], inplace=True)
+    if HAS_REQUESTS:
+        response = requests.get(url, timeout=10)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            raise Exception(f"Binance API HTTP {response.status_code}: {response.text}")
+    else:
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = resp.read().decode('utf-8')
+            return json.loads(data)
 
-print(f"\n📊 Statistik Data ({symbol}):")
-print(f"Total baris: {len(df)}")
-print(f"Dari tanggal: {df.index.min()}")
-print(f"Sampai tanggal: {df.index.max()}")
 
-# --- PENYIMPANAN (Nama file dinamis) ---
-csv_filename = f"{symbol_lower}_1h_data.csv"
-db_filename = 'trading_data.db' # Kita simpan di 1 DB tapi tabel berbeda
+def fetch_historical_crypto_data(symbol: str = "BTCUSDT", years: float = 2.0):
+    symbol_upper = symbol.upper()
+    symbol_lower = symbol_upper.replace("USDT", "").lower()
 
-df.to_csv(csv_filename)
-print(f"\n💾 Data disimpan ke CSV: {csv_filename}")
+    print(f"Fetching real {symbol_upper} historical data ({years} years, 1-hour candles) from Binance REST API...")
 
-conn = sqlite3.connect(db_filename)
-# Nama tabel dinamis
-df.to_sql(f"{symbol_lower}_1h", conn, if_exists='replace', index=True) 
-conn.close()
-print(f"💾 Data disimpan ke Database: {db_filename} (Tabel: '{symbol_lower}_1h')")
+    now_ms = int(time.time() * 1000)
+    start_ms = now_ms - int(years * 365 * 24 * 3600 * 1000)
 
-print(f"\n🎉 Misi Pengumpulan Data {symbol} Selesai!")
+    current_start = start_ms
+    all_klines = []
+
+    while current_start < now_ms:
+        try:
+            klines = fetch_binance_klines_batch(symbol_upper, interval="1h", startTime=current_start, limit=1000)
+            if not klines:
+                break
+
+            all_klines.extend(klines)
+
+            # Move next start time to last candle close time + 1 ms
+            last_close_time = klines[-1][6]
+            if last_close_time <= current_start:
+                break
+            current_start = last_close_time + 1
+
+            time.sleep(0.1)  # Rate limit safety
+        except Exception as e:
+            print(f"Warning/Error fetching batch starting at {current_start}: {e}")
+            break
+
+    if not all_klines:
+        print(f"Error: Could not fetch data for {symbol_upper}.")
+        return None
+
+    # Deduplicate and sort
+    seen = set()
+    unique_klines = []
+    for k in all_klines:
+        t = k[0]
+        if t not in seen:
+            seen.add(t)
+            unique_klines.append(k)
+
+    unique_klines.sort(key=lambda x: x[0])
+
+    # Save to data/ folder
+    os.makedirs("data", exist_ok=True)
+    csv_filename = os.path.join("data", f"{symbol_lower}_1h_data.csv")
+
+    with open(csv_filename, mode='w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+
+        for k in unique_klines:
+            dt = datetime.fromtimestamp(k[0] / 1000.0, tz=timezone.utc)
+            timestamp_str = dt.strftime('%Y-%m-%d %H:%M:%S')
+
+            writer.writerow([
+                timestamp_str,
+                f"{float(k[1]):.4f}",
+                f"{float(k[2]):.4f}",
+                f"{float(k[3]):.4f}",
+                f"{float(k[4]):.4f}",
+                f"{float(k[5]):.2f}"
+            ])
+
+    print(f"Saved dataset: {csv_filename} ({len(unique_klines)} candles from {datetime.fromtimestamp(unique_klines[0][0]/1000.0, tz=timezone.utc).strftime('%Y-%m-%d')} to {datetime.fromtimestamp(unique_klines[-1][0]/1000.0, tz=timezone.utc).strftime('%Y-%m-%d')})")
+    return csv_filename
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Fetch historical crypto data from Binance public API.")
+    parser.add_argument('--symbol', type=str, default='BTCUSDT', help='Symbol to fetch (e.g., BTCUSDT, ETHUSDT, XRPUSDT)')
+    parser.add_argument('--years', type=float, default=2.0, help='Years of historical data')
+    args = parser.parse_args()
+
+    fetch_historical_crypto_data(args.symbol, args.years)

@@ -1,0 +1,84 @@
+============================================================
+V18 ENVIRONMENT & MODEL DIAGNOSTIC
+============================================================
+
+Test data rows: 2624
+initial_close: 77479.13
+
+First observation (normalized):
+  close_norm: 0.000000
+  pred_norm: 0.000000
+  RSI_norm: -0.016695
+  MACD_norm: -0.488390
+  SMA7_norm: -0.001109
+  ATR_norm: 0.024757
+  usdt_norm: 0.000000
+  btc_norm: 0.000000
+  nw_norm: 0.000000
+
+Any NaN in obs: False
+Any Inf in obs: False
+
+============================================================
+DQN MODEL Q-VALUE CHECK
+============================================================
+MODEL ERROR: Expected all tensors to be on the same device, but got mat1 is on cpu, different from other tensors on cuda:0 (when checking argument in method wrapper_CUDA_addmm)
+Traceback (most recent call last):
+  File "/home/ryuen/Project/NeuroSymbolicAITradingfailed/debug_v18.py", line 69, in <module>
+    q = model.policy.q_net(t)
+        ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryuen/Project/NeuroSymbolicAITradingfailed/venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1778, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryuen/Project/NeuroSymbolicAITradingfailed/venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1789, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryuen/Project/NeuroSymbolicAITradingfailed/venv/lib/python3.12/site-packages/stable_baselines3/dqn/policies.py", line 66, in forward
+    return self.q_net(self.extract_features(obs, self.features_extractor))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryuen/Project/NeuroSymbolicAITradingfailed/venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1778, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryuen/Project/NeuroSymbolicAITradingfailed/venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1789, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryuen/Project/NeuroSymbolicAITradingfailed/venv/lib/python3.12/site-packages/torch/nn/modules/container.py", line 253, in forward
+    input = module(input)
+            ^^^^^^^^^^^^^
+  File "/home/ryuen/Project/NeuroSymbolicAITradingfailed/venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1778, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryuen/Project/NeuroSymbolicAITradingfailed/venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1789, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryuen/Project/NeuroSymbolicAITradingfailed/venv/lib/python3.12/site-packages/torch/nn/modules/linear.py", line 134, in forward
+    return F.linear(input, self.weight, self.bias)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Expected all tensors to be on the same device, but got mat1 is on cpu, different from other tensors on cuda:0 (when checking argument in method wrapper_CUDA_addmm)
+
+============================================================
+FIRST 20 ENVIRONMENT STEPS TRACE
+============================================================
+  Step  1: action=SELL | executed=HOLD | blocked=False | nw=10000.00 | reward=0.00000
+  Step  2: action=SELL | executed=HOLD | blocked=False | nw=10000.00 | reward=0.00000
+  Step  3: action=SELL | executed=HOLD | blocked=False | nw=10000.00 | reward=0.00000
+  Step  4: action=SELL | executed=HOLD | blocked=False | nw=10000.00 | reward=0.00000
+  Step  5: action=SELL | executed=HOLD | blocked=False | nw=10000.00 | reward=0.00000
+  Step  6: action=SELL | executed=HOLD | blocked=False | nw=10000.00 | reward=0.00000
+  Step  7: action=SELL | executed=HOLD | blocked=False | nw=10000.00 | reward=0.00000
+  Step  8: action=SELL | executed=HOLD | blocked=False | nw=10000.00 | reward=0.00000
+  Step  9: action=SELL | executed=HOLD | blocked=False | nw=10000.00 | reward=0.00000
+  Step 10: action=SELL | executed=HOLD | blocked=False | nw=10000.00 | reward=0.00000
+  Step 11: action=SELL | executed=HOLD | blocked=False | nw=10000.00 | reward=0.00000
+  Step 12: action=SELL | executed=HOLD | blocked=False | nw=10000.00 | reward=0.00000
+  Step 13: action=SELL | executed=HOLD | blocked=False | nw=10000.00 | reward=0.00000
+  Step 14: action=SELL | executed=HOLD | blocked=False | nw=10000.00 | reward=0.00000
+  Step 15: action=SELL | executed=HOLD | blocked=False | nw=10000.00 | reward=0.00000
+  Step 16: action=SELL | executed=HOLD | blocked=False | nw=10000.00 | reward=0.00000
+  Step 17: action=SELL | executed=HOLD | blocked=False | nw=10000.00 | reward=0.00000
+  Step 18: action=SELL | executed=HOLD | blocked=False | nw=10000.00 | reward=0.00000
+  Step 19: action=SELL | executed=HOLD | blocked=False | nw=10000.00 | reward=0.00000
+  Step 20: action=SELL | executed=HOLD | blocked=False | nw=10000.00 | reward=0.00000
+
+  Trades executed in first 20 steps: 0
+  Safety blocks in first 20 steps: 0
