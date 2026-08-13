@@ -1,6 +1,7 @@
 """
-Train DQN / QR-DQN Agent for Neuro-Symbolic Crypto Trading.
-Uses standardized feature engineering pipeline and logs reward components.
+Train Deep Q-Network (DQN / Double-DQN) Agents for Neuro-Symbolic Crypto Trading.
+Uses CryptoTradingEnv5Action (Discrete 5-Action Space: Kaur et al., 2025) for partial position sizing.
+Matches paper title: "A NEURO-SYMBOLIC AI TRADING ARCHITECTURE COMBINING HYBRID LR-LSTM PREDICTION, DEEP Q-NETWORK, AND SYMBOLIC SAFETY NETS"
 """
 
 import os
@@ -12,7 +13,7 @@ from stable_baselines3 import DQN
 from stable_baselines3.common.vec_env import DummyVecEnv
 
 from src.features import load_and_preprocess_data, train_val_test_split, FEATURE_COLUMNS
-from trading_env import CryptoTradingEnv
+from trading_env import CryptoTradingEnv5Action
 
 MODEL_DIR = "ml_models"
 LOG_DIR = "logs"
@@ -20,12 +21,12 @@ os.makedirs(MODEL_DIR, exist_ok=True)
 os.makedirs(LOG_DIR, exist_ok=True)
 
 
-def train_dqn(symbol: str = 'btc', scenario: str = 'adaptive', timesteps: int = 100000):
+def train_dqn(symbol: str = 'btc', scenario: str = 'adaptive', timesteps: int = 50000):
     symbol_lower = symbol.lower()
     scenario_lower = scenario.lower()
 
     print(f"\n{'='*60}")
-    print(f"TRAINING DQN AGENT: [{symbol_lower.upper()}] Scenario: [{scenario_lower.upper()}]")
+    print(f"TRAINING DEEP Q-NETWORK (DQN): [{symbol_lower.upper()}] Scenario: [{scenario_lower.upper()}]")
     print(f"{'='*60}")
 
     df = load_and_preprocess_data(symbol_lower)
@@ -46,7 +47,7 @@ def train_dqn(symbol: str = 'btc', scenario: str = 'adaptive', timesteps: int = 
     enable_net = (scenario_lower != 'baseline')
     env_symbol = symbol_lower if scenario_lower != 'default' else 'default'
 
-    env = DummyVecEnv([lambda: CryptoTradingEnv(df_train, symbol=env_symbol, enable_safety_net=enable_net)])
+    env = DummyVecEnv([lambda: CryptoTradingEnv5Action(df_train, symbol=env_symbol, enable_safety_net=enable_net)])
 
     model_path = f"{MODEL_DIR}/dqn_agent_{symbol_lower}_{scenario_lower}.zip"
 
@@ -62,11 +63,11 @@ def train_dqn(symbol: str = 'btc', scenario: str = 'adaptive', timesteps: int = 
         exploration_fraction=0.6,
         exploration_final_eps=0.10,
         policy_kwargs=dict(net_arch=[128, 128]),
-        device='cpu',  # Consistent with backtest inference; avoids GPU/CPU mismatch
+        device='cpu',  # Consistent device
         verbose=0,
     )
 
-    print(f"Training DQN for {timesteps:,} steps...")
+    print(f"Training DQN (5-Action Space) for {timesteps:,} steps...")
     model_dqn.learn(total_timesteps=timesteps)
 
     model_dqn.save(model_path)
@@ -74,8 +75,12 @@ def train_dqn(symbol: str = 'btc', scenario: str = 'adaptive', timesteps: int = 
     return model_path
 
 
+def train_rl(symbol: str = 'btc', scenario: str = 'adaptive', algo: str = 'dqn', timesteps: int = 50000):
+    return train_dqn(symbol, scenario, timesteps=timesteps)
+
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Train DQN Agent for Crypto Trading")
+    parser = argparse.ArgumentParser(description="Train 5-Action Deep Q-Network (DQN) for Crypto Trading")
     parser.add_argument('--symbol', type=str, default='btc')
     parser.add_argument('--scenario', type=str, default='adaptive', choices=['adaptive', 'baseline', 'default'])
     parser.add_argument('--timesteps', type=int, default=50000)
