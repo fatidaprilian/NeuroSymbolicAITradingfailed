@@ -1,6 +1,6 @@
 """
 Train Deep Q-Network (DQN / Double-DQN) Agents for Neuro-Symbolic Crypto Trading.
-Uses CryptoTradingEnv5Action (Discrete 5-Action Space: Kaur et al., 2025) for partial position sizing.
+Uses CryptoTradingEnv5Action (Discrete 5-Action Space: Huang & Su, 2024; Vergara & Kristjanpoller, 2024) for partial position sizing.
 Matches paper title: "A NEURO-SYMBOLIC AI TRADING ARCHITECTURE COMBINING HYBRID LR-LSTM PREDICTION, DEEP Q-NETWORK, AND SYMBOLIC SAFETY NETS"
 """
 

@@ -3,7 +3,7 @@
 Recent literature consensus (Roshanpour et al., 2025; Khujamatov et al., 2026; Jiang et al., 2026) emphasizes that capital preservation (measured by maximum drawdown and risk-adjusted returns) is the primary benchmark during macro cryptocurrency bear markets.
 
 **Empirical Analysis & Multi-Algorithm Benchmark Justification:**
-1. **Resolution of Policy Stagnation via 5-Action Space (Kaur et al., 2025)**: Standard 3-action DQNs suffer from zero-trade stagnation because an all-in BUY action exhausts cash balance, preventing subsequent rebalancing. By deploying a 5-action space (BUY_HALF, BUY_ALL, HOLD, SELL_HALF, SELL_ALL), the proposed DQN agent achieves **830 active rebalancing trades on BTC, 324 on ETH, and 614 on XRP**.
+1. **Resolution of Policy Stagnation via 5-Action Space (Huang & Su, 2024; Vergara & Kristjanpoller, 2024)**: Standard 3-action DQNs suffer from zero-trade stagnation because an all-in BUY action exhausts cash balance, preventing subsequent rebalancing. By deploying a 5-action discrete space (BUY_HALF, BUY_ALL, HOLD, SELL_HALF, SELL_ALL), the proposed DQN agent achieves **830 active rebalancing trades on BTC, 324 on ETH, and 614 on XRP**.
 2. **Superior Risk Mitigation & Drawdown Reduction over Pure Baseline DQN**:
    - On **XRP**, the Neuro-Symbolic 5-Action DQN achieved a **+7.94% return improvement** (-36.25% vs -44.19%) and reduced Maximum Drawdown from **-45.58% down to -37.88%** (a 7.70% risk reduction).
    - On **ETH**, the Neuro-Symbolic agent reduced Maximum Drawdown from **-40.90% (Pure Baseline DQN) down to -32.73%** (an 8.17% risk reduction).

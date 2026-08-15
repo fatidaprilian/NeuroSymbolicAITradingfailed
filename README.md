@@ -1,6 +1,6 @@
 # A Neuro-Symbolic AI Trading Architecture Combining Hybrid LR–LSTM Prediction, Deep Q-Network, and Symbolic Safety Nets
 
-A robust, risk-aware Neuro-Symbolic AI cryptocurrency trading framework for Bitcoin (BTC), Ethereum (ETH), and Ripple (XRP). It integrates an adaptive Linear Regression-LSTM price forecasting ensemble, a **5-Action Discrete Space Deep Q-Network (DQN)** agent $\{0: \text{SELL 100\%}, 1: \text{SELL 50\%}, 2: \text{HOLD}, 3: \text{BUY 50\%}, 4: \text{BUY 100\%}\}$ (Kaur et al., 2025), and a deterministic **Rule-Based Symbolic Safety Net (ATR, RSI, SMA)** acting as an un-overrideable veto circuit breaker against high-risk buy expansions during volatile market stress (Kochliaridis et al., 2023; Jiang et al., 2026).
+A robust, risk-aware Neuro-Symbolic AI cryptocurrency trading framework for Bitcoin (BTC), Ethereum (ETH), and Ripple (XRP). It integrates an adaptive Linear Regression-LSTM price forecasting ensemble, a **5-Action Discrete Space Deep Q-Network (DQN)** agent $\{0: \text{SELL 100\%}, 1: \text{SELL 50\%}, 2: \text{HOLD}, 3: \text{BUY 50\%}, 4: \text{BUY 100\%}\}$ (Huang & Su, 2024; Vergara & Kristjanpoller, 2024), and a deterministic **Rule-Based Symbolic Safety Net (ATR, RSI, SMA)** acting as an un-overrideable veto circuit breaker against high-risk buy expansions during volatile market stress (Kochliaridis et al., 2023; Jiang et al., 2026).
 
 ---
 
@@ -24,6 +24,8 @@ NeuroSymbolicAITrading/
 │       ├── quantitative_abstract.md       # Quantitative Abstract (Indonesian & English)
 │       ├── novelty_statement.md           # 3-Pillar Technical Novelty Statement
 │       ├── eth_drawdown_discussion.md     # Asset Dynamics & Asset-Dependent Safety Net Discussion
+│       ├── dqn_qrdqn_clarification.md     # Methodological Clarification on DQN & Scope
+│       ├── hyperparameter_justification.md# Hyperparameter & Asset-Dependent Threshold Justification
 │       └── related_work_table.md          # Comparative Mapping Table (2021-2026 Literature)
 ├── src/                     # Core Business Logic & Machine Learning Engine
 │   ├── __init__.py
@@ -34,6 +36,8 @@ NeuroSymbolicAITrading/
 ├── trading_env.py           # Top-level Gym environment wrapper
 ├── train_hybrid.py          # Hybrid forecasting training script
 ├── train_dqn.py             # 5-Action DQN agent training script
+├── train_doubledqn.py       # Double DQN agent training script
+├── train_ppo_sac.py         # Baseline PPO & A2C agent training script
 ├── run_test.py              # Main backtest runner & statistical suite
 ├── generate_paper_materials.py # Journal paper table & narrative generator
 ├── main.py                  # Single-command CLI launcher
@@ -73,7 +77,7 @@ python3 generate_paper_materials.py
 
 ## Scientific Verification & Key Empirical Findings
 
-1. **Resolution of Zero-Trade Policy Stagnation (Kaur et al., 2025)**:
+1. **Resolution of Zero-Trade Policy Stagnation**:
    By introducing a 5-action discrete unit space (BUY_HALF, BUY_ALL, HOLD, SELL_HALF, SELL_ALL), the DQN agent achieves **830 active trades on BTC**, **324 on ETH**, and **614 on XRP**, resolving standard 3-action DQN stagnation under 0.1% transaction fee friction.
 
 2. **Capital Preservation & Drawdown Mitigation (Jiang et al., 2026)**:

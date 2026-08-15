@@ -1,6 +1,6 @@
 """
 V21.0 PRODUCTION - NEURO-SYMBOLIC 5-ACTION DISCRETE CRYPTO TRADING ENVIRONMENT
-Implements 5-Action Discrete Space (Kaur et al., 2025) for Deep Q-Network (DQN) trading:
+Implements 5-Action Discrete Space (Huang & Su, 2024; Vergara & Kristjanpoller, 2024) for Deep Q-Network (DQN) trading:
   0: SELL_ALL  (100% Crypto -> USDT)
   1: SELL_HALF (50% Crypto -> USDT)
   2: HOLD      (Do Nothing)
@@ -73,7 +73,7 @@ class CryptoTradingEnv5Action(gym.Env):
 
         self.SAFETY_NET_PENALTY = -0.02
 
-        # 5 Discrete Actions (Kaur et al., 2025)
+        # 5 Discrete Actions
         self.action_space = spaces.Discrete(5)
 
         # 9 Normalized Observation Features

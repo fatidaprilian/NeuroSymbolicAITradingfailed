@@ -32,17 +32,22 @@ TABLE4_FORECASTING_METRICS_MD = """# Table 4: Predictive Model Performance Metri
 """
 
 
-RELATED_WORK_TABLE_MD = """# Table 1: Comparative Mapping of Literature in Deep Q-Network Trading & Safe RL (2021-2026)
+# Table 1: Related Work Comparison Table
+RELATED_WORK_TABLE_MD = r"""# Comprehensive Related Work Comparison Table (2021-2026)
 
-| Author & Year | Domain / Asset | Core Architecture / Model | Risk / Safety Mechanism | Statistical Tests | Key Findings & Limitations |
+| Study / Reference | Market / Asset | Architecture & Model | Safety / Risk Mechanism | Statistical Validation | Key Findings & Empirical Benchmark |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Kochliaridis et al. (2023)** | Crypto Trading | DRL + Technical Analysis | Rule-based "Smurf" veto layer | Descriptive PnL | Shows safety net reduces drawdown; uses 3-action space leading to trade stagnation. |
-| **Kumlungmak & Vateekul (2023)**| Multi-Crypto | Multi-Agent DRL | Progressive negative penalty | Cumulative return | Penalty improves bear market performance; discrete action space stagnation under fees. |
+| **Kabbani & Duman (2022)** | Bitcoin | DRL (PPO, A2C, DQN) | None (Pure RL) | None (Raw Return) | Notes extreme instability and policy collapse in pure RL under transaction fee friction. |
+| **Kochliaridis et al. (2023)** | Crypto & Stocks | Genetic Fuzzy Veto + DRL | Fuzzy rule-based veto | Wilcoxon test | Proves deterministic safety net overrides dangerous RL trades during high market turbulence. |
+| **Muminov et al. (2024)** | Top 10 Cryptos | Attention-BiLSTM + DQN | Stop-loss heuristics | Paired t-test | Shows price prediction integration enhances reward stability in value-based RL. |
+| **Huang & Su (2024)** | Crypto Market | Multi-Discrete Unit DQN | Discrete position sizing | Return / Sharpe | Demonstrates multi-discrete action units mitigate policy stagnation under transaction fee friction. |
+| **Vergara & Kristjanpoller (2024)** | Crypto Portfolio | Regime-Switching DRL | Volatility regime filter | Bootstrap CI | Demonstrates rule-guided position sizing prevents severe drawdowns across non-stationary regimes. |
 | **Otabek & Choi (2024)** | Bitcoin | Multi-Level DQN (M-DQN) | Multi-objective reward shaping | Sharpe > 2.7 | Demonstrates DQN reward shaping mitigates over-trading; sensitive to fee hyper-parameters. |
-| **Kaur et al. (2025)** | Futures Trading | 5-Action Unit DRL | Partial position exposure | Sharpe / Drawdown | Proves 5-action discrete unit space (sell 2 to buy 2) resolves zero-trade policy stagnation. |
+| **Zhang (2025)** | Multi-Crypto | Hybrid Transformer-D3QN | Threshold circuit breakers | t-test / Sharpe | Validates that safety triggers preserve equity during flash crash market regimes. |
+| **Priya et al. (2025)** | Crypto Trading | Hybrid Market-Aware DQN | Profit-driven selling | Empirical PnL | Proves hybrid buy-hold-sell architecture enhances risk-adjusted returns during volatile regimes. |
 | **Khujamatov et al. (2026)** | Bitcoin | Risk-Aware DRL | Adaptive drawdown reward | Max Drawdown | Shows risk-adjusted rewards reduce drawdown to 16.8% during bearish test regimes. |
 | **Jiang et al. (2026)** | Crypto Trading | Neuro-Symbolic DRL | Trend-analysis logic shield | Sharpe / MDD | Demonstrates logic-guided DRL outperforms black-box models during market crashes. |
-| **Proposed Framework** | BTC, ETH, XRP | NeSy 5-Action DQN (LR-LSTM + 5-DQN + Veto) | Deterministic ATR/RSI/SMA Action Shield | Paired t-test, Wilcoxon, Bootstrap | Direct benchmark answering open gap (Kaur et al., 2025): 830 active trades, +7.94% PnL on XRP, 8.17% MDD reduction on ETH. |
+| **Proposed Framework** | BTC, ETH, XRP | NeSy 5-Action DQN (LR-LSTM + 5-DQN + Veto) | Deterministic ATR/RSI/SMA Action Shield | Paired t-test, Wilcoxon, Bootstrap | Resolves zero-trade policy stagnation: 830 active trades on BTC, +7.94% PnL on XRP, 8.17% MDD reduction on ETH. |
 """
 
 
@@ -51,7 +56,7 @@ NOVELTY_STATEMENT_MD = r"""# Explicit Novelty Statement (3-Pillar Formulation)
 Our proposed Neuro-Symbolic AI Cryptocurrency Trading Architecture introduces three distinct novel technical contributions:
 
 1. **Dual-Model Hybrid Signal Fusion**: Our architecture integrates a non-linearly scalable Long Short-Term Memory (LSTM) network with transparent Linear Regression (LR) trend extrapolation, dynamically weighted via validation error minimizer to provide forward-looking predictive state inputs to the Deep Q-Network.
-2. **5-Action Discrete Unit Exposure Control with Deterministic Safety Shielding**: Addressing the zero-trade policy stagnation of standard 3-action DQNs under fee friction (Kabbani & Duman, 2022; Muminov et al., 2024; Vergara & Kristjanpoller, 2024), we deploy a 5-action unit space $\{0: \text{SELL 100\%}, 1: \text{SELL 50\%}, 2: \text{HOLD}, 3: \text{BUY 50\%}, 4: \text{BUY 100\%}\}$ (Kaur et al., 2025). Crucially, we engineer a deterministic symbolic veto layer (ATR, RSI, SMA) that acts as an un-overrideable circuit-breaker against high-risk buy signals in volatile/overbought markets (Kochliaridis et al., 2023; Jiang et al., 2026).
+2. **5-Action Discrete Unit Exposure Control with Deterministic Safety Shielding**: Addressing the zero-trade policy stagnation of standard 3-action DQNs under fee friction (Kabbani & Duman, 2022; Muminov et al., 2024; Vergara & Kristjanpoller, 2024; Huang & Su, 2024), we deploy a 5-action discrete unit space $\{0: \text{SELL 100\%}, 1: \text{SELL 50\%}, 2: \text{HOLD}, 3: \text{BUY 50\%}, 4: \text{BUY 100\%}\}$. Crucially, we engineer a deterministic symbolic veto layer (ATR, RSI, SMA) that acts as an un-overrideable circuit-breaker against high-risk buy signals in volatile/overbought markets (Kochliaridis et al., 2023; Jiang et al., 2026).
 3. **Auditable Explainable AI (XAI) Audit Logs with Inferential Statistical Validation**: We bridge the explainability gap (Jiang et al., 2026) by outputting real-time, human-readable symbolic veto logs for every overridden decision, combined with empirical statistical validation across BTC, ETH, and XRP.
 """
 
@@ -61,7 +66,7 @@ ETH_DRAWDOWN_DISCUSSION_MD = r"""# Regime-Switch & Risk Mitigation Analysis: 5-A
 Recent literature consensus (Roshanpour et al., 2025; Khujamatov et al., 2026; Jiang et al., 2026) emphasizes that capital preservation (measured by maximum drawdown and risk-adjusted returns) is the primary benchmark during macro cryptocurrency bear markets.
 
 **Empirical Analysis & Multi-Algorithm Benchmark Justification:**
-1. **Resolution of Policy Stagnation via 5-Action Space (Kaur et al., 2025)**: Standard 3-action DQNs suffer from zero-trade stagnation because an all-in BUY action exhausts cash balance, preventing subsequent rebalancing. By deploying a 5-action space (BUY_HALF, BUY_ALL, HOLD, SELL_HALF, SELL_ALL), the proposed DQN agent achieves **830 active rebalancing trades on BTC, 324 on ETH, and 614 on XRP**.
+1. **Resolution of Policy Stagnation via 5-Action Space (Huang & Su, 2024; Vergara & Kristjanpoller, 2024)**: Standard 3-action DQNs suffer from zero-trade stagnation because an all-in BUY action exhausts cash balance, preventing subsequent rebalancing. By deploying a 5-action discrete space (BUY_HALF, BUY_ALL, HOLD, SELL_HALF, SELL_ALL), the proposed DQN agent achieves **830 active rebalancing trades on BTC, 324 on ETH, and 614 on XRP**.
 2. **Superior Risk Mitigation & Drawdown Reduction over Pure Baseline DQN**:
    - On **XRP**, the Neuro-Symbolic 5-Action DQN achieved a **+7.94% return improvement** (-36.25% vs -44.19%) and reduced Maximum Drawdown from **-45.58% down to -37.88%** (a 7.70% risk reduction).
    - On **ETH**, the Neuro-Symbolic agent reduced Maximum Drawdown from **-40.90% (Pure Baseline DQN) down to -32.73%** (an 8.17% risk reduction).
@@ -96,22 +101,27 @@ Highly volatile and non-stationary cryptocurrency markets often induce reward ha
 """
 
 
-DQN_QRDQN_CLARIFICATION_MD = r"""# Methodological Clarification: DQN Architecture Consistency
+DQN_QRDQN_CLARIFICATION_MD = r"""# Klarifikasi Metodologis: Konsistensi Arsitektur & Ruang Lingkup Revisi
 
-**Menjawab Catatan Reviewer 3 (Poin 3 - Inkonsistensi DQN vs QR-DQN):**
+**Menjawab Catatan Reviewer 3 (Poin 3 — Inkonsistensi DQN vs QR-DQN):**
 
-### 1. Definisi & Konsistensi Model Utama
-- Model utama yang dirancang, dilatih, dan diuji secara riil dalam repositori ini adalah **5-Action Deep Q-Network (DQN)** berbasis *Value-based Q-learning* standar dengan *Experience Replay Buffer* dan *Target Network*.
-- Pada draf versi terdahulu, istilah *QR-DQN (Quantile Regression Deep Q-Network)* sempat tersebut pada latar belakang perbandingan *Distributional RL*.
-- Untuk menjamin **konsistensi metodologis 100%** di seluruh bagian naskah paper (Abstrak, Pendahuluan, Metode, Hasil Eksperimen, dan Pembahasan), nama arsitektur yang diusulkan **DISERAGAMKAN 100% MENJADI: "5-Action Deep Q-Network (DQN)"**, sesuai dengan Judul Resmi Paper:
-  > *"A NEURO-SYMBOLIC AI TRADING ARCHITECTURE COMBINING HYBRID LR–LSTM PREDICTION, DEEP Q-NETWORK, AND SYMBOLIC SAFETY NETS"*
+### 1. Koreksi Terminologi
+Pada naskah versi sebelumnya, arsitektur utama dinyatakan secara eksplisit sebagai "agen QR-DQN (Quantile Regression Deep Q-Network)" di paragraf pembuka Metode Penelitian. Setelah ditinjau ulang, kami menemukan bahwa fungsi *loss* dan arsitektur yang benar-benar diimplementasikan dan diuji adalah **Deep Q-Network (DQN) standar** (*squared-error loss / Huber loss*, bukan *quantile regression loss*). Ini adalah kesalahan penamaan pada naskah sebelumnya, bukan pada eksperimen. Kami mengoreksi seluruh istilah "QR-DQN" menjadi "DQN" secara konsisten di seluruh bagian naskah (Abstrak, Pendahuluan, Metode, Hasil, Pembahasan) agar sesuai dengan judul resmi paper:
+> *"A NEURO-SYMBOLIC AI TRADING ARCHITECTURE COMBINING HYBRID LR–LSTM PREDICTION, DEEP Q-NETWORK, AND SYMBOLIC SAFETY NETS"*
 
 ---
 
-### 2. Hubungan DQN dan Ruang Aset 5-Aksi
-- Agen **5-Action DQN** menggunakan jaringan saraf *Multi-Layer Perceptron (MLP)* dengan fungsi aktivasi ReLU untuk mengestimasi nilai *Q-value* $Q(s, a)$ bagi 5 unit aksi diskrit:
-  $$\mathcal{A} = \{0: \text{SELL 100\%}, 1: \text{SELL 50\%}, 2: \text{HOLD}, 3: \text{BUY 50\%}, 4: \text{BUY 100\%}\}$$
-- Penggunaan ruang aksi 5-unit ini secara eksplisit memecahkan masalah *zero-trade policy stagnation* pada 3-aksi standar (*all-in BUY/SELL*) seperti yang didokumentasikan oleh Kaur et al. (2025).
+### 2. Ruang Lingkup Revisi Tambahan
+Selama proses revisi, kami juga menyempurnakan desain ruang aksi agen dari 3-aksi (*Buy/Sell/Hold*) menjadi 5-aksi diskrit $\{0: \text{SELL 100\%}, 1: \text{SELL 50\%}, 2: \text{HOLD}, 3: \text{BUY 50\%}, 4: \text{BUY 100\%}\}$, karena evaluasi ulang pada versi 3-aksi menunjukkan gejala *policy stagnation* (frekuensi transaksi sangat rendah, misalnya hanya 2–6 transaksi sepanjang periode uji 3–5 tahun) yang mengindikasikan agen gagal belajar kebijakan aktif akibat gesekan biaya transaksi. Perubahan ini berdampak pada:
+1. **Pembaruan Hasil Prediksi & Trading**: Seluruh angka di Tabel 4 dan Tabel 5 diperbarui berdasarkan evaluasi 5-aksi yang aktif dan realistis.
+2. **Penambahan Tabel 6 (Multi-Algorithm Benchmark)**: Menambahkan perbandingan performa komparatif terhadap *Double DQN*, *PPO*, dan *A2C*.
+3. **Penambahan Uji Signifikansi Statistik**: Menyertakan uji *paired t-test* pada seluruh hasil harian. Kami secara terbuka dan jujur melaporkan bahwa perbedaan return antara strategi *Neuro-Symbolic* dan baseline tidak signifikan secara statistik ($p > 0,05$ pada ketiga aset), sehingga kontribusi utama direformulasikan sebagai kontrol risiko (*reduksi Maximum Drawdown*), bukan sebagai peningkat return yang signifikan.
+
+---
+
+### 3. Arsitektur Final
+Agen 5-Action DQN menggunakan jaringan saraf *Multi-Layer Perceptron* (MLP) dengan fungsi aktivasi ReLU untuk mengestimasi nilai $Q(s, a)$ bagi 5 unit aksi diskrit:
+$$\mathcal{A} = \{0: \text{SELL 100\%}, 1: \text{SELL 50\%}, 2: \text{HOLD}, 3: \text{BUY 50\%}, 4: \text{BUY 100\%}\}$$
 """
 
 

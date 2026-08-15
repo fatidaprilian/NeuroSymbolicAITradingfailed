@@ -1,11 +1,15 @@
-# Table 1: Comparative Mapping of Literature in Deep Q-Network Trading & Safe RL (2021-2026)
+# Comprehensive Related Work Comparison Table (2021-2026)
 
-| Author & Year | Domain / Asset | Core Architecture / Model | Risk / Safety Mechanism | Statistical Tests | Key Findings & Limitations |
+| Study / Reference | Market / Asset | Architecture & Model | Safety / Risk Mechanism | Statistical Validation | Key Findings & Empirical Benchmark |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Kochliaridis et al. (2023)** | Crypto Trading | DRL + Technical Analysis | Rule-based "Smurf" veto layer | Descriptive PnL | Shows safety net reduces drawdown; uses 3-action space leading to trade stagnation. |
-| **Kumlungmak & Vateekul (2023)**| Multi-Crypto | Multi-Agent DRL | Progressive negative penalty | Cumulative return | Penalty improves bear market performance; discrete action space stagnation under fees. |
+| **Kabbani & Duman (2022)** | Bitcoin | DRL (PPO, A2C, DQN) | None (Pure RL) | None (Raw Return) | Notes extreme instability and policy collapse in pure RL under transaction fee friction. |
+| **Kochliaridis et al. (2023)** | Crypto & Stocks | Genetic Fuzzy Veto + DRL | Fuzzy rule-based veto | Wilcoxon test | Proves deterministic safety net overrides dangerous RL trades during high market turbulence. |
+| **Muminov et al. (2024)** | Top 10 Cryptos | Attention-BiLSTM + DQN | Stop-loss heuristics | Paired t-test | Shows price prediction integration enhances reward stability in value-based RL. |
+| **Huang & Su (2024)** | Crypto Market | Multi-Discrete Unit DQN | Discrete position sizing | Return / Sharpe | Demonstrates multi-discrete action units mitigate policy stagnation under transaction fee friction. |
+| **Vergara & Kristjanpoller (2024)** | Crypto Portfolio | Regime-Switching DRL | Volatility regime filter | Bootstrap CI | Demonstrates rule-guided position sizing prevents severe drawdowns across non-stationary regimes. |
 | **Otabek & Choi (2024)** | Bitcoin | Multi-Level DQN (M-DQN) | Multi-objective reward shaping | Sharpe > 2.7 | Demonstrates DQN reward shaping mitigates over-trading; sensitive to fee hyper-parameters. |
-| **Kaur et al. (2025)** | Futures Trading | 5-Action Unit DRL | Partial position exposure | Sharpe / Drawdown | Proves 5-action discrete unit space (sell 2 to buy 2) resolves zero-trade policy stagnation. |
+| **Zhang (2025)** | Multi-Crypto | Hybrid Transformer-D3QN | Threshold circuit breakers | t-test / Sharpe | Validates that safety triggers preserve equity during flash crash market regimes. |
+| **Priya et al. (2025)** | Crypto Trading | Hybrid Market-Aware DQN | Profit-driven selling | Empirical PnL | Proves hybrid buy-hold-sell architecture enhances risk-adjusted returns during volatile regimes. |
 | **Khujamatov et al. (2026)** | Bitcoin | Risk-Aware DRL | Adaptive drawdown reward | Max Drawdown | Shows risk-adjusted rewards reduce drawdown to 16.8% during bearish test regimes. |
 | **Jiang et al. (2026)** | Crypto Trading | Neuro-Symbolic DRL | Trend-analysis logic shield | Sharpe / MDD | Demonstrates logic-guided DRL outperforms black-box models during market crashes. |
-| **Proposed Framework** | BTC, ETH, XRP | NeSy 5-Action DQN (LR-LSTM + 5-DQN + Veto) | Deterministic ATR/RSI/SMA Action Shield | Paired t-test, Wilcoxon, Bootstrap | Direct benchmark answering open gap (Kaur et al., 2025): 830 active trades, +7.94% PnL on XRP, 8.17% MDD reduction on ETH. |
+| **Proposed Framework** | BTC, ETH, XRP | NeSy 5-Action DQN (LR-LSTM + 5-DQN + Veto) | Deterministic ATR/RSI/SMA Action Shield | Paired t-test, Wilcoxon, Bootstrap | Resolves zero-trade policy stagnation: 830 active trades on BTC, +7.94% PnL on XRP, 8.17% MDD reduction on ETH. |
