@@ -103,7 +103,9 @@ Data ini dimasukkan pada **Sub-bab 3.1**.
 **Tanggapan Penulis:**
 Kami telah melatih dan menguji secara komparatif algoritma **Double DQN, PPO, dan A2C** pada ketiga aset kripto (BTC, ETH, XRP). Hasil komparatif disajikan pada **Tabel 6**:
 - **Double DQN Neuro-Symbolic** mengungguli baseline Double DQN murni sebesar **+12,11% pada BTC** (-22,74% vs -34,85%) dan **+10,56% pada XRP** (-39,92% vs -50,48%).
+- Namun demikian, untuk kombinasi **Double DQN pada ETH**, strategi *Pure Baseline* mencatat performa yang lebih baik dibandingkan *Neuro-Symbolic* (-17,74% vs -23,62%), yang mengindikasikan bahwa efektivitas *Safety Net* dapat bervariasi tergantung interaksi antara arsitektur estimasi fungsi nilai (*Q-value*) dan profil momentum aset. Temuan ini kami laporkan secara terbuka dan dibahas pada Bab 4 sebagai dasar perlunya kalibrasi ambang batas adaptif per-algoritma untuk penelitian selanjutnya.
 - Algoritma *On-Policy* (**PPO dan A2C**) mengalami fenomena *Action Stagnation / Local Minimum Collapse* (0 transaksi, 0.00% return) karena tidak memiliki *Experience Replay Buffer* untuk memutus korelasi temporal dalam ruang *trading* dengan biaya transaksi. Fenomena ini dianalisis dan didukung oleh literatur *policy-making RL* (arXiv:2312.06527).
+- Desain ruang aksi 5-unit diskrit dirancang untuk mengatasi fenomena *zero-trade policy stagnation* yang rentan terjadi pada ruang aksi 3-unit standar (*buy/hold/sell*) di bawah gesekan biaya transaksi (Vergara & Kristjanpoller, 2024; Kumlungmak, 2022; Huang & Su, 2024).
 
 ---
 
