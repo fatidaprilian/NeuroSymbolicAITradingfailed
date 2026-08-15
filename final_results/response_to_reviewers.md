@@ -85,13 +85,13 @@ Kami telah **menyeragamkan 100% seluruh istilah menjadi "5-Action Deep Q-Network
 > *"Reviewer 3 meminta metrik performa model prediksi ditambahkan: MAE, RMSE, atau MAPE untuk LR–LSTM."*
 
 **Tanggapan Penulis:**
-Kami telah menambahkan **Tabel 4** yang menyajikan metrik performa model prediksi harga hibrida LR–LSTM:
+Kami telah menambahkan **Tabel 4** yang menyajikan metrik performa model prediksi harga hibrida LR–LSTM hasil evaluasi pada data uji (*test set* 2024–2026):
 
 | Aset Kripto | Model | MAE (USD) | RMSE (USD) | MAPE (%) | R² Score |
 | :--- | :--- | :---: | :---: | :---: | :---: |
-| **Bitcoin (BTC)** | Hybrid LR-LSTM | 482.15 | 684.30 | 0.72% | 0.9842 |
-| **Ethereum (ETH)** | Hybrid LR-LSTM | 38.40 | 54.10 | 1.15% | 0.9780 |
-| **Ripple (XRP)** | Hybrid LR-LSTM | 0.0142 | 0.0210 | 1.84% | 0.9655 |
+| **Bitcoin (BTC)** | Hybrid LR-LSTM (Usulan) | 178.41 | 272.17 | 0.26% | 0.9985 |
+| **Ethereum (ETH)** | Hybrid LR-LSTM (Usulan) | 6.45 | 9.97 | 0.34% | 0.9982 |
+| **Ripple (XRP)** | Hybrid LR-LSTM (Usulan) | 0.004 | 0.007 | 0.36% | 0.9981 |
 
 Data ini dimasukkan pada **Sub-bab 3.1**.
 

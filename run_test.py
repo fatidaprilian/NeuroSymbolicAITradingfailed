@@ -288,6 +288,18 @@ def run_full_benchmark_suite(symbols=('btc', 'eth', 'xrp')):
 
         summary_rows_t6.append({
             'Asset': sym.upper(),
+            'Algorithm': 'Double DQN (5-Action)',
+            'Strategy': 'Pure Baseline',
+            'Return (%)': f"{m_ddqn_b['total_return']:+.2f}%",
+            'Sharpe': f"{m_ddqn_b['sharpe_ratio']:.4f}",
+            'Sortino': f"{m_ddqn_b['sortino_ratio']:.4f}",
+            'Max Drawdown': f"{m_ddqn_b['max_drawdown']:.2f}%",
+            'Trades': len(res_ddqn_base['trades']),
+            'Safety Blocks': 0
+        })
+
+        summary_rows_t6.append({
+            'Asset': sym.upper(),
             'Algorithm': 'PPO (5-Action)',
             'Strategy': 'Neuro-Symbolic',
             'Return (%)': f"{m_ppo_n['total_return']:+.2f}%",
