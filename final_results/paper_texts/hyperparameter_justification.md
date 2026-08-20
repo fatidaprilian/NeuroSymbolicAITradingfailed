@@ -15,12 +15,12 @@
 
 ---
 
-### 2. Ambang Batas Kalibrasi Terkondisi Rezim (Asset-Dependent Safety Net Veto Rules)
+### 2. Ambang Batas Kalibrasi Terkondisi Distribusi (Distribution-Calibrated Safety Net Veto Rules)
 
-Sesuai kalibrasi pada `trading_env.py`, ambang batas *Symbolic Safety Net* dikalibrasi secara spesifik berdasarkan dinamika volatilitas dan struktur pasar per masing-masing aset:
+Sesuai konsensus Safe Reinforcement Learning (Zhang et al., 2024; Emam et al., 2021; Su et al., 2024), ambang batas statis arbitrari rentan mengalami *under-triggering* saat pergeseran rezim pasar. Oleh karena itu, ambang batas *Symbolic Safety Net* pada `trading_env.py` dikalibrasi berdasarkan persentil ke-90 ($Q_{0.90}$) distribusi empiris Normalized ATR (NATR) dan persentil ke-95 RSI pada data lilin 1-jam:
 
-| Aset Kripto | RSI Overbought Threshold | Normalized ATR (NATR) Threshold | Simple Moving Average (SMA) | Justifikasi Kalibrasi Aset |
+| Aset Kripto | RSI Overbought Threshold | Normalized ATR (NATR) Threshold | Simple Moving Average (SMA) | Justifikasi Kalibrasi Distribusi Empiris |
 | :---: | :---: | :---: | :---: | :--- |
-| **BTC** | `RSI > 80` | `NATR > 15.0%` | `Price < SMA_30` | Dikalibrasi untuk aset berpikologis *large-cap* dengan fenomena *momentum trend* kuat. |
-| **ETH** | `RSI > 78` | `NATR > 12.0%` | `Price < SMA_30` | Dikalibrasi untuk aset *mid-to-large cap* dengan sensitivitas volatilitas menengah. |
-| **XRP** | `RSI > 82` | `NATR > 18.0%` | `Price < SMA_30` | Dikalibrasi untuk aset *altcoin* berpola volatilitas mikro ekstrim (*high-frequency spikes*). |
+| **BTC** | `RSI > 68.0` | `NATR > 1.23%` | `Price < SMA_30` | Dikalibrasi pada persentil ke-90 NATR lilin 1-jam BTC ($Q_{0.90} = 1.23\%$) untuk mendeteksi anomali volatilitas aset *large-cap*. |
+| **ETH** | `RSI > 68.0` | `NATR > 1.46%` | `Price < SMA_30` | Dikalibrasi pada persentil ke-90 NATR lilin 1-jam ETH ($Q_{0.90} = 1.46\%$) untuk sensitivitas volatilitas menengah. |
+| **XRP** | `RSI > 68.0` | `NATR > 2.26%` | `Price < SMA_30` | Dikalibrasi pada persentil ke-90 NATR lilin 1-jam XRP ($Q_{0.90} = 2.26\%$) guna memitigasi *micro-volatility spikes* altcoin. |

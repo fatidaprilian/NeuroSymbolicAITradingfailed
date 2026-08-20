@@ -57,19 +57,19 @@ class CryptoTradingEnv5Action(gym.Env):
         self.enable_safety_net = enable_safety_net
         self.log_trades = log_trades
 
-        # Asset-specific veto thresholds
+        # Asset-specific distribution-calibrated veto thresholds (90th/95th percentiles of 1h series)
         if self.symbol == 'btc':
-            self.RSI_OVERBOUGHT = 80
-            self.VOLATILITY_THRESHOLD_PERCENT = 15.0
+            self.RSI_OVERBOUGHT = 68.0
+            self.VOLATILITY_THRESHOLD_PERCENT = 1.23
         elif self.symbol == 'eth':
-            self.RSI_OVERBOUGHT = 78
-            self.VOLATILITY_THRESHOLD_PERCENT = 12.0
+            self.RSI_OVERBOUGHT = 68.0
+            self.VOLATILITY_THRESHOLD_PERCENT = 1.46
         elif self.symbol == 'xrp':
-            self.RSI_OVERBOUGHT = 82
-            self.VOLATILITY_THRESHOLD_PERCENT = 18.0
+            self.RSI_OVERBOUGHT = 68.0
+            self.VOLATILITY_THRESHOLD_PERCENT = 2.26
         else:
-            self.RSI_OVERBOUGHT = 80
-            self.VOLATILITY_THRESHOLD_PERCENT = 15.0
+            self.RSI_OVERBOUGHT = 68.0
+            self.VOLATILITY_THRESHOLD_PERCENT = 1.50
 
         self.SAFETY_NET_PENALTY = -0.02
 

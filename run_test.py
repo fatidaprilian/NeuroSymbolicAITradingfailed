@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
-from stable_baselines3 import DQN
+from stable_baselines3 import DQN, PPO, A2C
 
 from src.features import load_and_preprocess_data, train_val_test_split
 from src.stats_eval import (
@@ -312,6 +312,18 @@ def run_full_benchmark_suite(symbols=('btc', 'eth', 'xrp')):
 
         summary_rows_t6.append({
             'Asset': sym.upper(),
+            'Algorithm': 'PPO (5-Action)',
+            'Strategy': 'Pure Baseline',
+            'Return (%)': f"{m_ppo_b['total_return']:+.2f}%",
+            'Sharpe': f"{m_ppo_b['sharpe_ratio']:.4f}",
+            'Sortino': f"{m_ppo_b['sortino_ratio']:.4f}",
+            'Max Drawdown': f"{m_ppo_b['max_drawdown']:.2f}%",
+            'Trades': len(res_ppo_base['trades']),
+            'Safety Blocks': 0
+        })
+
+        summary_rows_t6.append({
+            'Asset': sym.upper(),
             'Algorithm': 'A2C (5-Action)',
             'Strategy': 'Neuro-Symbolic',
             'Return (%)': f"{m_a2c_n['total_return']:+.2f}%",
@@ -320,6 +332,18 @@ def run_full_benchmark_suite(symbols=('btc', 'eth', 'xrp')):
             'Max Drawdown': f"{m_a2c_n['max_drawdown']:.2f}%",
             'Trades': len(res_a2c_nesy['trades']),
             'Safety Blocks': res_a2c_nesy['veto_triggers']['total_blocks']
+        })
+
+        summary_rows_t6.append({
+            'Asset': sym.upper(),
+            'Algorithm': 'A2C (5-Action)',
+            'Strategy': 'Pure Baseline',
+            'Return (%)': f"{m_a2c_b['total_return']:+.2f}%",
+            'Sharpe': f"{m_a2c_b['sharpe_ratio']:.4f}",
+            'Sortino': f"{m_a2c_b['sortino_ratio']:.4f}",
+            'Max Drawdown': f"{m_a2c_b['max_drawdown']:.2f}%",
+            'Trades': len(res_a2c_base['trades']),
+            'Safety Blocks': 0
         })
 
         summary_rows_t6.append({

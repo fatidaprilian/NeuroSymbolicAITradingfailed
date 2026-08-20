@@ -176,17 +176,17 @@ def run_all_sma_baselines(symbols=('btc', 'eth', 'xrp')):
     # --- Load Existing Table 5 Benchmarks for Side-by-Side Comparison ---
     table5_benchmarks = {
         'BTC': [
-            {'Algorithm': 'DQN (5-Action)', 'Strategy': 'Neuro-Symbolic', 'Return (%)': '-27.94%', 'Sharpe': '-3.0202', 'Sortino': '-2.9875', 'Max Drawdown': '-33.15%', 'Trades': 830, 'Safety Blocks': 0},
+            {'Algorithm': 'DQN (5-Action)', 'Strategy': 'Neuro-Symbolic', 'Return (%)': '-27.60%', 'Sharpe': '-2.9238', 'Sortino': '-2.8988', 'Max Drawdown': '-32.86%', 'Trades': 783, 'Safety Blocks': 125},
             {'Algorithm': 'DQN (5-Action)', 'Strategy': 'Pure Baseline', 'Return (%)': '-26.24%', 'Sharpe': '-2.6459', 'Sortino': '-2.6259', 'Max Drawdown': '-30.52%', 'Trades': 561, 'Safety Blocks': 0},
             {'Algorithm': 'Passive (HODL)', 'Strategy': 'Buy & Hold', 'Return (%)': '-17.85%', 'Sharpe': '-1.5215', 'Sortino': '-1.4977', 'Max Drawdown': '-29.36%', 'Trades': 1, 'Safety Blocks': 0},
         ],
         'ETH': [
-            {'Algorithm': 'DQN (5-Action)', 'Strategy': 'Neuro-Symbolic', 'Return (%)': '-18.22%', 'Sharpe': '-1.3996', 'Sortino': '-1.3049', 'Max Drawdown': '-32.73%', 'Trades': 324, 'Safety Blocks': 0},
+            {'Algorithm': 'DQN (5-Action)', 'Strategy': 'Neuro-Symbolic', 'Return (%)': '-18.60%', 'Sharpe': '-1.3934', 'Sortino': '-1.3094', 'Max Drawdown': '-31.89%', 'Trades': 307, 'Safety Blocks': 113},
             {'Algorithm': 'DQN (5-Action)', 'Strategy': 'Pure Baseline', 'Return (%)': '-22.16%', 'Sharpe': '-1.5825', 'Sortino': '-1.5348', 'Max Drawdown': '-40.90%', 'Trades': 156, 'Safety Blocks': 0},
             {'Algorithm': 'Passive (HODL)', 'Strategy': 'Buy & Hold', 'Return (%)': '-18.40%', 'Sharpe': '-1.0953', 'Sortino': '-1.0753', 'Max Drawdown': '-36.90%', 'Trades': 1, 'Safety Blocks': 0},
         ],
         'XRP': [
-            {'Algorithm': 'DQN (5-Action)', 'Strategy': 'Neuro-Symbolic', 'Return (%)': '-36.25%', 'Sharpe': '-3.2188', 'Sortino': '-3.1569', 'Max Drawdown': '-37.88%', 'Trades': 614, 'Safety Blocks': 8},
+            {'Algorithm': 'DQN (5-Action)', 'Strategy': 'Neuro-Symbolic', 'Return (%)': '-33.57%', 'Sharpe': '-3.0803', 'Sortino': '-3.0039', 'Max Drawdown': '-35.09%', 'Trades': 574, 'Safety Blocks': 213},
             {'Algorithm': 'DQN (5-Action)', 'Strategy': 'Pure Baseline', 'Return (%)': '-44.19%', 'Sharpe': '-4.0686', 'Sortino': '-3.9791', 'Max Drawdown': '-45.58%', 'Trades': 327, 'Safety Blocks': 0},
             {'Algorithm': 'Passive (HODL)', 'Strategy': 'Buy & Hold', 'Return (%)': '-28.93%', 'Sharpe': '-2.0982', 'Sortino': '-2.0688', 'Max Drawdown': '-35.26%', 'Trades': 1, 'Safety Blocks': 0},
         ]

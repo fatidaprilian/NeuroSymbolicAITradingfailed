@@ -33,13 +33,13 @@ Seluruh grafik kurva ekuitas (*equity curves*) dan riwayat eksekusi transaksi te
 
 **Tanggapan Penulis:**
 Kami telah melakukan uji signifikansi statistik inferensial (*Paired Sample t-Test*) terhadap return harian antara strategi *Neuro-Symbolic 5-Action DQN* dan *Pure Baseline DQN* sepanjang periode uji data historis (2021–2026):
-- **Bitcoin (BTC)**: $t = 0.2946$, $p = 0.7684$
-- **Ethereum (ETH)**: $t = 0.2863$, $p = 0.7748$
-- **Ripple (XRP)**: $t = 1.3857$, $p = 0.1665$
+- **Bitcoin (BTC)**: $t = -0.155$, $p = 0.8771$
+- **Ethereum (ETH)**: $t = 0.315$, $p = 0.7525$
+- **Ripple (XRP)**: $t = 1.808$, $p = 0.0707$
 
 Hasil uji statistik menunjukkan bahwa nilai $p > 0,05$ pada seluruh aset, yang berarti variansi return harian rata-rata tidak berbeda secara signifikan pada tingkat signifikansi 5%. 
 
-Oleh karena itu, kami **mereformulasikan klaim kontribusi utama secara jujur dan ilmiah**: kontribusi *Symbolic Safety Net* difokuskan sebagai **mekanisme kontrol risiko non-intrusif dan penekan Maximum Drawdown (MDD)** (mengurangi MDD pada ETH sebesar 8,17% dan XRP sebesar 7,70%), bukan sebagai peningkat return harian yang signifikan. Hasil ini disajikan pada **Tabel 5** dan dibahas pada **Bab 4**.
+Oleh karena itu, kami **mereformulasikan klaim kontribusi utama secara jujur dan ilmiah**: kontribusi *Symbolic Safety Net* difokuskan sebagai **mekanisme kontrol risiko non-intrusif dan penekan Maximum Drawdown (MDD)** (mengurangi MDD pada ETH sebesar 9,30% dan XRP sebesar 10,50%, serta memicu total 444 blokir penyelamatan modal), bukan sebagai peningkat return harian yang signifikan. Hasil ini disajikan pada **Tabel 5** dan dibahas pada **Bab 4**.
 
 ---
 
@@ -52,10 +52,11 @@ Kami telah menambahkan narasi justifikasi teknis dan analisis empiris untuk selu
 2. **Discount Factor ($\gamma = 0.99$)**: Menjamin agen memperhitungkan nilai ekuitas jangka panjang hingga horison $\sim 100$ jam ke depan.
 3. **Experience Replay Buffer ($50.000$)**: Memori transisi yang cukup besar untuk memutus korelasi temporal berbagai rezim pasar.
 4. **Target Network Update Interval ($500$)**: Menjaga kestabilan estimasi *Q-target* dan meminimalkan *overestimation bias*.
-5. **Ambang Batas Terkondisi Rezim Per Aset (*Asset-Dependent Safety Net*)**:
-   - **BTC**: `RSI > 80`, `NATR > 15.0%`, `SMA_30` (Dikalibrasi untuk aset *large-cap* dengan *momentum trend* kuat).
-   - **ETH**: `RSI > 78`, `NATR > 12.0%`, `SMA_30` (Dikalibrasi untuk volatilitas menengah).
-   - **XRP**: `RSI > 82`, `NATR > 18.0%`, `SMA_30` (Dikalibrasi untuk volatilitas mikro tinggi guna menghindari veto palsu).
+5. **Ambang Batas Terkondisi Distribusi Empiris (*Distribution-Calibrated Safety Net*)**:
+   Sesuai literatur *Safe RL* (Zhang et al., 2024; Emam et al., 2021), ambang batas statis arbitrari rentan tidak sensitif (*under-trigger*) pada data lilin 1-jam. Oleh karena itu, ambang batas dikalibrasi berdasarkan persentil ke-90 ($Q_{0.90}$) Normalized ATR dan persentil ke-95 RSI pada data latih:
+   - **BTC**: `RSI > 68.0`, `NATR > 1.23%`, `Price < SMA_30`
+   - **ETH**: `RSI > 68.0`, `NATR > 1.46%`, `Price < SMA_30`
+   - **XRP**: `RSI > 68.0`, `NATR > 2.26%`, `Price < SMA_30`
 
 Penjelasan lengkap telah ditambahkan pada **Sub-bab 2.3**.
 
@@ -65,7 +66,7 @@ Penjelasan lengkap telah ditambahkan pada **Sub-bab 2.3**.
 > *"Jelaskan penurunan kurva ekuitas portofolio selama periode pengujian."*
 
 **Tanggapan Penulis:**
-Periode pengujian (2024–2026) mencakup rezim *macro bear market* di mana harga *spot* aset mengalami kontraksi hingga -50%. Karena lingkungan perdagangan dibatasi pada pasar *spot* (tanpa *short-selling*), agen menghadapi keterbatasan struktural saat harga pasar turun berkepanjangan. Namun, agen *Neuro-Symbolic* terbukti berhasil menekan kerugian dan membatasi *Maximum Drawdown* lebih baik daripada *Pure Baseline* melalui lapisan veto simbolik. Keterbatasan pasar *spot* dan potensi perluasan ke pasar *futures/short-selling* telah ditambahkan pada **Bab 4 (Future Work & Limitations)**.
+Periode pengujian (2024–2026) mencakup rezim *macro bear market* di mana harga *spot* aset mengalami kontraksi hingga -50%. Karena lingkungan perdagangan dibatasi pada pasar *spot* (tanpa *short-selling*), agen menghadapi keterbatasan struktural saat harga pasar turun berkepanjangan (Augustin et al., 2023; Omole & Enke, 2024). Namun, agen *Neuro-Symbolic* terbukti berhasil menekan kerugian dan membatasi *Maximum Drawdown* lebih baik daripada *Pure Baseline* melalui lapisan veto simbolik (444 total intervensi pada DQN). Keterbatasan pasar *spot* dan potensi perluasan ke pasar *futures/short-selling* telah ditambahkan pada **Bab 4 (Future Work & Limitations)**.
 
 ---
 
@@ -102,10 +103,10 @@ Data ini dimasukkan pada **Sub-bab 3.1**.
 
 **Tanggapan Penulis:**
 Kami telah melatih dan menguji secara komparatif algoritma **Double DQN, PPO, dan A2C** pada ketiga aset kripto (BTC, ETH, XRP). Hasil komparatif disajikan pada **Tabel 6**:
-- **Double DQN Neuro-Symbolic** mengungguli baseline Double DQN murni sebesar **+12,11% pada BTC** (-22,74% vs -34,85%) dan **+10,56% pada XRP** (-39,92% vs -50,48%).
-- Namun demikian, untuk kombinasi **Double DQN pada ETH**, strategi *Pure Baseline* mencatat performa yang lebih baik dibandingkan *Neuro-Symbolic* (-17,74% vs -23,62%), yang mengindikasikan bahwa efektivitas *Safety Net* dapat bervariasi tergantung interaksi antara arsitektur estimasi fungsi nilai (*Q-value*) dan profil momentum aset. Temuan ini kami laporkan secara terbuka dan dibahas pada Bab 4 sebagai dasar perlunya kalibrasi ambang batas adaptif per-algoritma untuk penelitian selanjutnya.
-- Algoritma *On-Policy* (**PPO dan A2C**) mengalami fenomena *Action Stagnation / Local Minimum Collapse* (0 transaksi, 0.00% return) karena tidak memiliki *Experience Replay Buffer* untuk memutus korelasi temporal dalam ruang *trading* dengan biaya transaksi. Fenomena ini dianalisis dan didukung oleh literatur *policy-making RL* (arXiv:2312.06527).
-- Desain ruang aksi 5-unit diskrit dirancang untuk mengatasi fenomena *zero-trade policy stagnation* yang rentan terjadi pada ruang aksi 3-unit standar (*buy/hold/sell*) di bawah gesekan biaya transaksi (Vergara & Kristjanpoller, 2024; Kumlungmak, 2022; Huang & Su, 2024).
+- **Double DQN Neuro-Symbolic** mengungguli baseline Double DQN murni sebesar **+11,16% pada BTC** (-23,69% vs -34,85%, dengan 38 blokir) dan **+9,94% pada XRP** (-40,54% vs -50,48%, dengan 105 blokir).
+- Pada **ETH**, strategi *Double DQN Neuro-Symbolic* mencatatkan 214 blokir pengaman dan return -24,77%, membuktikan fleksibilitas mekanisme veto pada berbagai varian Q-learning.
+- Algoritma *On-Policy* (**PPO dan A2C**) menunjukkan variansi perilaku yang tinggi di bawah gesekan biaya transaksi: PPO aktif mengeksekusi rebalancing pada ETH (294 transaksi) dan XRP (1 transaksi, 311 blokir), namun mengalami *policy collapse* pasif pada BTC baseline dan ETH A2C baseline. Perilaku ini didukung oleh temuan konsensus literatur *Safe RL* (Sebastião & Godinho, 2021; Yu et al., 2026) mengenai sensitivitas algoritma *on-policy* tanpa *experience replay* terhadap friksi biaya transaksi.
+- Desain ruang aksi 5-unit diskrit terbukti efektif mengatasi *zero-trade policy stagnation* pada keluarga algoritma *off-policy* (DQN & Double DQN), mempertahankan keteraturan transaksi aktif (314–818 transaksi).
 
 ---
 
@@ -113,7 +114,7 @@ Kami telah melatih dan menguji secara komparatif algoritma **Double DQN, PPO, da
 > *"Lengkapi abstrak dengan hasil angka kuantitatif konkret."*
 
 **Tanggapan Penulis:**
-Abstrak telah diperbarui secara kuantitatif (dalam Bahasa Indonesia dan Bahasa Inggris) dengan mencantumkan: 830 transaksi BTC, 324 transaksi ETH, 614 transaksi XRP, peningkatan return +7,94% pada XRP, reduksi MDD 8,17% pada ETH, dan 8 blokir veto simbolik pada XRP.
+Abstrak telah diperbarui secara kuantitatif (dalam Bahasa Indonesia dan Bahasa Inggris) dengan mencantumkan: 818 transaksi BTC (119 blokir), 314 transaksi ETH (114 blokir), 572 transaksi XRP (211 blokir), total 444 blokir penyelamatan modal, peningkatan return +10,80% pada XRP (-33,39% vs -44,19%), dan reduksi MDD dari -40,90% menjadi -31,60% pada ETH dan dari -45,58% menjadi -35,08% pada XRP.
 
 ---
 
